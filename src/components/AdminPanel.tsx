@@ -168,7 +168,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
       if (!token) return;
 
       const eventStartTime = new Date(order.dateTime);
-      const eventEndTime = addHours(eventStartTime, 2); // Default to 2 hours duration
+      const eventEndTime = addHours(eventStartTime, 3); // Consistent 3-hour duration
 
       const event = {
         summary: `Catering: ${order.to} (${order.quantity} pax)`,

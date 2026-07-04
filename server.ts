@@ -63,8 +63,8 @@ const db = getClientFirestore(clientApp, firebaseConfig.firestoreDatabaseId);
 
 // Authenticate server as admin to bypass restricted Firestore security rules
 const auth = getAuth(clientApp);
-const adminEmail = process.env.ADMIN_EMAIL || "wawasan.orders@gmail.com";
-const adminPassword = process.env.ADMIN_PASSWORD || "wawasan123";
+const adminEmail = process.env.ADMIN_EMAIL;
+const adminPassword = process.env.ADMIN_PASSWORD;
 
 if (adminEmail && adminPassword) {
   signInWithEmailAndPassword(auth, adminEmail, adminPassword)
@@ -298,7 +298,7 @@ Total Amount: ${orderData.totalAmount !== undefined ? `RM ${Number(orderData.tot
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
 
   // Middleware
   app.use(cors());
@@ -771,7 +771,7 @@ async function startServer() {
   app.post("/api/admin/login", (req, res) => {
     try {
       const { password } = req.body;
-      const adminPassword = process.env.ADMIN_PASSWORD || "wawasan123";
+      const adminPassword = process.env.ADMIN_PASSWORD;
 
       if (!password || password !== adminPassword) {
         return res.status(401).json({ success: false, error: "Unauthorized: Invalid password" });
@@ -788,7 +788,7 @@ async function startServer() {
   app.post("/api/admin/orders", async (req, res) => {
     try {
       const { password, action, orderId, data } = req.body;
-      const adminPassword = process.env.ADMIN_PASSWORD || "wawasan123";
+      const adminPassword = process.env.ADMIN_PASSWORD;
 
       if (!password || password !== adminPassword) {
         return res.status(401).json({ error: "Unauthorized: Invalid password" });

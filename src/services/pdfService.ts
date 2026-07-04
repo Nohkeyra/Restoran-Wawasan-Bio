@@ -101,7 +101,7 @@ export const generateInvoicePDF = (order: Order, isFinal: boolean, lang: 'en' | 
   doc.setFontSize(8.5);
   doc.text('Unit 3, Level B3, Menara PjH', 40, 25);
   doc.text('Jalan P2a, Presint 2, 62100 Putrajaya', 40, 29);
-  doc.text('Est. 1996', 40, 33);
+  doc.text('Est. 1986', 40, 33);
 
   // Invoice Big Heading on right
   doc.setTextColor(cHeaderGold[0], cHeaderGold[1], cHeaderGold[2]);
@@ -289,7 +289,7 @@ export const generateInvoicePDF = (order: Order, isFinal: boolean, lang: 'en' | 
   doc.setTextColor(cCharcoal[0], cCharcoal[1], cCharcoal[2]);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.text('Restoran Wawasan  |  Unit 3, Level B3, Menara PjH, Putrajaya  |  Est. 1996', 105, 285, { align: 'center' });
+  doc.text('Restoran Wawasan  |  Unit 3, Level B3, Menara PjH, Putrajaya  |  Est. 1986', 105, 285, { align: 'center' });
 
 
   // ==========================================
