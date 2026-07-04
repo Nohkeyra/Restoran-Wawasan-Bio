@@ -56,3 +56,27 @@ dependencies {
 apply from: 'capacitor.build.gradle'
 apply plugin: 'com.google.gms.google-services'
 
+tasks.register("printFingerprint") {
+    doLast {
+        def javaHome = System.getProperty("java.home")
+        def keytoolName = System.getProperty("os.name").toLowerCase().contains("win") ? "keytool.exe" : "keytool"
+        def keyTool = new File(javaHome, "bin/" + keytoolName)
+        def keystore = new File(System.getProperty("user.home"), ".android/debug.keystore")
+        
+        if (!keystore.exists()) {
+            println "------------------------------------------------------------"
+            println "DEBUG KEYSTORE NOT FOUND"
+            println "Expected path: ${keystore.absolutePath}"
+            println "Please make sure you have run the app at least once on an emulator/device,"
+            println "or generated a debug build, so that Android SDK creates the default debug.keystore."
+            println "------------------------------------------------------------"
+            return
+        }
+        
+        println "Executing keytool to fetch certificate fingerprints..."
+        exec {
+            commandLine keyTool.absolutePath, "-list", "-v", "-alias", "androiddebugkey", "-keystore", keystore.absolutePath, "-storepass", "android"
+        }
+    }
+}
+

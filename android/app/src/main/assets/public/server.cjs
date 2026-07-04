@@ -26,10 +26,10 @@ var import_config = require("dotenv/config");
 var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
 var import_fs = __toESM(require("fs"), 1);
-var import_vite = require("vite");
 var import_nodemailer = __toESM(require("nodemailer"), 1);
 var import_cors = __toESM(require("cors"), 1);
 var import_app = require("firebase/app");
+var import_auth = require("firebase/auth");
 var import_firestore = require("firebase/firestore");
 var import_googleapis = require("googleapis");
 var firebaseConfig = {
@@ -58,6 +58,36 @@ try {
 var clientApps = (0, import_app.getApps)();
 var clientApp = clientApps.length === 0 ? (0, import_app.initializeApp)(firebaseConfig) : clientApps[0];
 var db = (0, import_firestore.getFirestore)(clientApp, firebaseConfig.firestoreDatabaseId);
+var auth = (0, import_auth.getAuth)(clientApp);
+var adminEmail = process.env.ADMIN_EMAIL;
+var adminPassword = process.env.ADMIN_PASSWORD;
+if (adminEmail && adminPassword) {
+  (0, import_auth.signInWithEmailAndPassword)(auth, adminEmail, adminPassword).then((userCredential) => {
+    console.log(`[Firebase] Server successfully authenticated as admin user: ${userCredential.user.email}`);
+  }).catch((err) => {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    const errorCode = err.code || "";
+    if (errorCode === "auth/operation-not-allowed" || errorMessage.includes("auth/operation-not-allowed") || errorMessage.includes("operation-not-allowed")) {
+      console.error(
+        `
+======================================================================
+[Firebase ERROR] Server failed to authenticate: auth/operation-not-allowed
+
+REASON: The "Email/Password" sign-in provider is disabled in your Firebase Console.
+
+TO FIX THIS:
+1. Go to your Firebase Console: https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/providers
+2. Under the "Sign-in method" tab, click "Add new provider" (or choose "Email/Password").
+3. Toggle "Enable" under the Email/Password setting and click "Save".
+4. Re-run or redeploy your app on Render.
+======================================================================
+`
+      );
+    } else {
+      console.error("[Firebase] Server failed to authenticate as admin user:", errorMessage);
+    }
+  });
+}
 var LOCAL_DB_PATH = import_path.default.join(process.cwd(), "orders.json");
 function getLocalOrders() {
   try {
@@ -84,12 +114,12 @@ function getGoogleCalendarClient() {
     return null;
   }
   try {
-    const auth = new import_googleapis.google.auth.JWT({
+    const auth2 = new import_googleapis.google.auth.JWT({
       email,
       key: privateKey,
       scopes: ["https://www.googleapis.com/auth/calendar", "https://www.googleapis.com/auth/calendar.events"]
     });
-    return import_googleapis.google.calendar({ version: "v3", auth });
+    return import_googleapis.google.calendar({ version: "v3", auth: auth2 });
   } catch (err) {
     console.error("Failed to initialize Google Calendar client:", err);
     return null;
@@ -230,7 +260,7 @@ Total Amount: ${orderData.totalAmount !== void 0 ? `RM ${Number(orderData.totalA
 }
 async function startServer() {
   const app = (0, import_express.default)();
-  const PORT = 3e3;
+  const PORT = process.env.PORT || 3e3;
   app.use((0, import_cors.default)());
   app.use(import_express.default.json({ limit: "50mb" }));
   const transporter = import_nodemailer.default.createTransport({
@@ -634,8 +664,8 @@ Restoran Wawasan`;
   app.post("/api/admin/login", (req, res) => {
     try {
       const { password } = req.body;
-      const adminPassword = process.env.ADMIN_PASSWORD || "wawasan123";
-      if (!password || password !== adminPassword) {
+      const adminPassword2 = process.env.ADMIN_PASSWORD;
+      if (!password || password !== adminPassword2) {
         return res.status(401).json({ success: false, error: "Unauthorized: Invalid password" });
       }
       return res.json({ success: true });
@@ -647,8 +677,8 @@ Restoran Wawasan`;
   app.post("/api/admin/orders", async (req, res) => {
     try {
       const { password, action, orderId, data } = req.body;
-      const adminPassword = process.env.ADMIN_PASSWORD || "wawasan123";
-      if (!password || password !== adminPassword) {
+      const adminPassword2 = process.env.ADMIN_PASSWORD;
+      if (!password || password !== adminPassword2) {
         return res.status(401).json({ error: "Unauthorized: Invalid password" });
       }
       if (action === "fetch") {
@@ -739,8 +769,10 @@ Restoran Wawasan`;
       res.status(500).json({ error: err instanceof Error ? err.message : "Internal server error" });
     }
   });
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await (0, import_vite.createServer)({
+  const isProduction = process.env.NODE_ENV === "production" && import_fs.default.existsSync(import_path.default.join(process.cwd(), "dist/index.html"));
+  if (!isProduction) {
+    const { createServer: createViteServer } = await import("vite");
+    const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa"
     });
@@ -748,7 +780,7 @@ Restoran Wawasan`;
   } else {
     const distPath = import_path.default.join(process.cwd(), "dist");
     app.use(import_express.default.static(distPath));
-    app.get("*", (req, res) => {
+    app.get("*all", (req, res) => {
       res.sendFile(import_path.default.join(distPath, "index.html"));
     });
   }

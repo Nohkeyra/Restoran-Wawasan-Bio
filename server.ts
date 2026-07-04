@@ -72,7 +72,23 @@ if (adminEmail && adminPassword) {
       console.log(`[Firebase] Server successfully authenticated as admin user: ${userCredential.user.email}`);
     })
     .catch((err) => {
-      console.error("[Firebase] Server failed to authenticate as admin user:", err.message);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      const errorCode = (err as { code?: string }).code || "";
+      if (errorCode === "auth/operation-not-allowed" || errorMessage.includes("auth/operation-not-allowed") || errorMessage.includes("operation-not-allowed")) {
+        console.error(
+          `\n======================================================================\n` +
+          `[Firebase ERROR] Server failed to authenticate: auth/operation-not-allowed\n\n` +
+          `REASON: The "Email/Password" sign-in provider is disabled in your Firebase Console.\n\n` +
+          `TO FIX THIS:\n` +
+          `1. Go to your Firebase Console: https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/providers\n` +
+          `2. Under the "Sign-in method" tab, click "Add new provider" (or choose "Email/Password").\n` +
+          `3. Toggle "Enable" under the Email/Password setting and click "Save".\n` +
+          `4. Re-run or redeploy your app on Render.\n` +
+          `======================================================================\n`
+        );
+      } else {
+        console.error("[Firebase] Server failed to authenticate as admin user:", errorMessage);
+      }
     });
 }
 
@@ -905,7 +921,7 @@ async function startServer() {
   });
 
   // Vite middleware for development - check if we are in production
-  const isProduction = process.env.NODE_ENV === "production" || fs.existsSync(path.join(process.cwd(), "dist/index.html"));
+  const isProduction = process.env.NODE_ENV === "production" && fs.existsSync(path.join(process.cwd(), "dist/index.html"));
 
   if (!isProduction) {
     const { createServer: createViteServer } = await import("vite");
