@@ -89,9 +89,26 @@ TO FIX THIS:
   });
 }
 var LOCAL_DB_PATH = import_path.default.join(process.cwd(), "orders.json");
+async function runWithRetry(fn, retries = 3, delayMs = 1e3) {
+  let lastError;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      console.warn(`[Firestore Retry] Attempt ${attempt} failed. Retrying in ${delayMs}ms... Error:`, error);
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        delayMs *= 2;
+      }
+    }
+  }
+  throw lastError;
+}
 function getLocalOrders() {
   try {
     if (import_fs.default.existsSync(LOCAL_DB_PATH)) {
+      console.warn("[WARNING] Reading from local fallback file 'orders.json'. Note: This local file system is ephemeral and transient. All local changes will be lost upon container restart or redeployment.");
       return JSON.parse(import_fs.default.readFileSync(LOCAL_DB_PATH, "utf-8"));
     }
   } catch (err) {
@@ -101,6 +118,7 @@ function getLocalOrders() {
 }
 function saveLocalOrders(orders) {
   try {
+    console.warn("[WARNING] Writing to local fallback file 'orders.json'. Note: This local file system is ephemeral and transient. All local changes will be lost upon container restart or redeployment.");
     import_fs.default.writeFileSync(LOCAL_DB_PATH, JSON.stringify(orders, null, 2), "utf-8");
   } catch (err) {
     console.error("Error writing to local orders database:", err);
@@ -154,7 +172,7 @@ async function syncGoogleCalendarEvent(orderId, passedOrderData) {
     if (orderData.dateTime) {
       startDateTime = new Date(orderData.dateTime);
     } else if (orderData.date) {
-      startDateTime = /* @__PURE__ */ new Date(`${orderData.date}T${orderData.time || "12:00"}:00`);
+      startDateTime = /* @__PURE__ */ new Date(`${orderData.date}T${orderData.time || "12:00"}:00+08:00`);
     } else {
       startDateTime = /* @__PURE__ */ new Date();
     }
@@ -288,14 +306,14 @@ async function startServer() {
       let orderId = "";
       let savedInFirestore = false;
       try {
-        const docRef = await (0, import_firestore.addDoc)((0, import_firestore.collection)(db, "orders"), {
+        const docRef = await runWithRetry(() => (0, import_firestore.addDoc)((0, import_firestore.collection)(db, "orders"), {
           ...orderData,
           adminPasscode: process.env.ADMIN_PASSWORD || "wawasan123"
-        });
+        }));
         orderId = docRef.id;
         savedInFirestore = true;
       } catch (dbErr) {
-        console.warn("Firestore order submission failed, saving locally:", dbErr);
+        console.warn("Firestore order submission failed after retries, saving locally:", dbErr);
       }
       if (!savedInFirestore) {
         orderId = "order_" + Math.random().toString(36).substring(2, 10);
@@ -356,9 +374,9 @@ async function startServer() {
       if (!isLocal) {
         try {
           const docRef = (0, import_firestore.doc)(db, collectionName, submissionId);
-          await (0, import_firestore.updateDoc)(docRef, updatedFields);
+          await runWithRetry(() => (0, import_firestore.updateDoc)(docRef, updatedFields));
         } catch (dbErr) {
-          console.warn("Firestore update in bill failed, syncing locally:", dbErr);
+          console.warn("Firestore update in bill failed after retries, syncing locally:", dbErr);
           isLocal = true;
         }
       }
@@ -620,7 +638,7 @@ async function startServer() {
   });
   app.post("/api/send-invoice", async (req, res) => {
     try {
-      const { email, name, invoiceNo, pdfBase64, isFinal, lang } = req.body;
+      const { email, name, invoiceNo, pdfBase64, isFinal, lang, orderDetails } = req.body;
       if (!email || !pdfBase64) {
         return res.status(400).json({ error: "Missing required fields (email, pdfBase64)" });
       }
@@ -629,7 +647,225 @@ async function startServer() {
         return res.status(500).json({ error: "Email service not configured." });
       }
       const emailSubject = lang === "bm" ? isFinal ? `Invois Muktamad - ${invoiceNo}` : `Invois Awal - ${invoiceNo}` : isFinal ? `Final Invoice - ${invoiceNo}` : `Preliminary Invoice - ${invoiceNo}`;
-      const emailBody = lang === "bm" ? `Salam ${name || "Pelanggan"},
+      let emailBody = "";
+      let htmlBody = void 0;
+      if (orderDetails) {
+        const titleText = lang === "bm" ? "TEMPAHAN KATERING REKODED" : "CATERING BOOKING RECORDED";
+        const subtitleText = lang === "bm" ? "Butiran Tempahan & Invois Awal" : "Booking Details & Preliminary Invoice";
+        const thankYouText = lang === "bm" ? `Terima kasih kerana memilih <strong>Restoran Wawasan</strong>! Butiran tempahan katering anda telah berjaya direkodkan. Sila dapati salinan butiran lengkap pesanan anda di bawah.` : `Thank you for choosing <strong>Restoran Wawasan</strong>! Your catering booking details have been successfully recorded. Please find a copy of your complete order details below.`;
+        const footerText = lang === "bm" ? "E-mel ini dijanakan secara automatik. Sila hubungi kami jika terdapat sebarang pertanyaan." : "This is an automatically generated email. Please contact us if you have any questions.";
+        const mealLabels = {
+          "breakfast": lang === "bm" ? "Sarapan (Breakfast)" : "Breakfast (Sarapan)",
+          "lunch": lang === "bm" ? "Makan Tengahari (Lunch)" : "Lunch (Makan Tengahari)",
+          "tea_break": lang === "bm" ? "Minum Petang (High Tea)" : "High Tea (Minum Petang)",
+          "dinner": lang === "bm" ? "Makan Malam (Dinner)" : "Dinner (Makan Malam)"
+        };
+        const formattedMeals = Array.isArray(orderDetails.meals) ? orderDetails.meals.map((m) => mealLabels[m] || m).join(", ") : orderDetails.meals || "N/A";
+        htmlBody = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                background-color: #f7fafc;
+                margin: 0;
+                padding: 20px;
+                color: #2d3748;
+              }
+              .container {
+                max-width: 600px;
+                margin: 0 auto;
+                background: #ffffff;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                border: 1px solid #e2e8f0;
+              }
+              .header {
+                background-color: #1a202c;
+                padding: 30px;
+                text-align: center;
+                color: #ffffff;
+                border-bottom: 3px solid #D4AF37;
+              }
+              .header h1 {
+                margin: 0;
+                font-size: 24px;
+                font-weight: 700;
+                letter-spacing: 0.05em;
+                color: #D4AF37;
+              }
+              .header p {
+                margin: 5px 0 0 0;
+                color: #a0aec0;
+                font-size: 14px;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+              }
+              .content {
+                padding: 30px;
+              }
+              .greeting {
+                font-size: 16px;
+                line-height: 1.6;
+                margin-bottom: 25px;
+              }
+              .section-title {
+                font-size: 16px;
+                font-weight: 700;
+                color: #1a202c;
+                border-bottom: 2px solid #edf2f7;
+                padding-bottom: 8px;
+                margin-top: 25px;
+                margin-bottom: 15px;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+              }
+              .detail-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 25px;
+                font-size: 14px;
+              }
+              .detail-table td {
+                padding: 10px 12px;
+                vertical-align: top;
+                border-bottom: 1px solid #f7fafc;
+              }
+              .detail-table td.label {
+                width: 35%;
+                color: #718096;
+                font-weight: 600;
+                background-color: #fcfcfc;
+              }
+              .detail-table td.value {
+                width: 65%;
+                color: #2d3748;
+                font-weight: 500;
+              }
+              .notes-box {
+                background-color: #fffaf0;
+                border: 1px solid #feebc8;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 25px;
+                font-size: 14px;
+              }
+              .notes-title {
+                color: #dd6b20;
+                font-weight: 700;
+                margin-bottom: 5px;
+                text-transform: uppercase;
+                font-size: 12px;
+                letter-spacing: 0.05em;
+              }
+              .notes-content {
+                color: #7b341e;
+                line-height: 1.5;
+              }
+              .footer {
+                background-color: #f7fafc;
+                padding: 25px;
+                text-align: center;
+                font-size: 12px;
+                color: #a0aec0;
+                border-top: 1px solid #edf2f7;
+                line-height: 1.5;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>RESTORAN WAWASAN</h1>
+                <p>${titleText}</p>
+                <div style="font-size: 12px; color: #cbd5e0; margin-top: 4px;">${subtitleText}</div>
+              </div>
+              <div class="content">
+                <div class="greeting">
+                  <p style="margin-top: 0; font-weight: 700; font-size: 18px; color: #1a202c;">
+                    ${lang === "bm" ? "Salam" : "Hello"} ${name || "Customer"},
+                  </p>
+                  <p style="color: #4a5568; margin-bottom: 0;">${thankYouText}</p>
+                </div>
+
+                <div class="section-title">${lang === "bm" ? "BUTIRAN MAJLIS" : "EVENT DETAILS"}</div>
+                <table class="detail-table">
+                  <tr>
+                    <td class="label">${lang === "bm" ? "Syarikat / Organisasi" : "Company / Organization"}</td>
+                    <td class="value">${orderDetails.to || "N/A"}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">${lang === "bm" ? "Untuk Perhatian (Attn)" : "Attention (Attn)"}</td>
+                    <td class="value">${orderDetails.attn || "N/A"}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">${lang === "bm" ? "Nama PIC" : "PIC Name"}</td>
+                    <td class="value">${orderDetails.name || "N/A"}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">${lang === "bm" ? "Siri Hubungan" : "Contact Number"}</td>
+                    <td class="value">${orderDetails.contact || "N/A"}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">${lang === "bm" ? "Alamat E-mel" : "Email Address"}</td>
+                    <td class="value">${orderDetails.email || "N/A"}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">${lang === "bm" ? "Tarikh Majlis" : "Event Date"}</td>
+                    <td class="value" style="color: #2b6cb0; font-weight: 700;">${orderDetails.date || "N/A"}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">${lang === "bm" ? "Masa Penghantaran" : "Delivery Time"}</td>
+                    <td class="value">${orderDetails.time || "N/A"}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">${lang === "bm" ? "Lokasi / Alamat Majlis" : "Event Venue"}</td>
+                    <td class="value">${orderDetails.location || "N/A"}</td>
+                  </tr>
+                </table>
+
+                <div class="section-title">${lang === "bm" ? "PILIHAN MENU & HIDANGAN" : "MENU & MEAL SELECTION"}</div>
+                <table class="detail-table">
+                  <tr>
+                    <td class="label">${lang === "bm" ? "Pakej Pilihan" : "Selected Package"}</td>
+                    <td class="value" style="font-weight: 700; color: #1a202c;">${orderDetails.menu || "N/A"}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">${lang === "bm" ? "Bilangan Pax" : "Quantity (Pax)"}</td>
+                    <td class="value" style="font-weight: 700; color: #2b6cb0;">${orderDetails.quantity || "N/A"} Pax</td>
+                  </tr>
+                  <tr>
+                    <td class="label">${lang === "bm" ? "Jenis Hidangan" : "Meal Types"}</td>
+                    <td class="value">${formattedMeals}</td>
+                  </tr>
+                </table>
+
+                ${orderDetails.notes ? `
+                  <div class="notes-box">
+                    <div class="notes-title">${lang === "bm" ? "PERMINTAAN KHAS / NOTA" : "SPECIAL REQUESTS / NOTES"}</div>
+                    <div class="notes-content">${orderDetails.notes.replace(/\n/g, "<br>")}</div>
+                  </div>
+                ` : ""}
+
+                <div style="background-color: #ebf8ff; border: 1px solid #bee3f8; border-radius: 8px; padding: 15px; text-align: center; font-size: 14px; color: #2b6cb0; font-weight: 600;">
+                  ${lang === "bm" ? `Salinan invois awal (${invoiceNo}) telah dilampirkan bersama e-mel ini.` : `A copy of your preliminary invoice (${invoiceNo}) has been attached to this email.`}
+                </div>
+              </div>
+              <div class="footer">
+                <p style="margin: 0;">${footerText}</p>
+                <p style="margin: 5px 0 0 0; font-weight: 600; color: #718096;">Restoran Wawasan Putrajaya</p>
+                <p style="margin: 5px 0 0 0;">&copy; ${(/* @__PURE__ */ new Date()).getFullYear()} Restoran Wawasan. All rights reserved.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `;
+      } else {
+        emailBody = lang === "bm" ? `Salam ${name || "Pelanggan"},
 
 Sila dapati lampiran invois untuk rujukan anda.
 
@@ -640,12 +876,14 @@ Please find attached the invoice for your reference.
 
 Thank you.
 Restoran Wawasan`;
+      }
       const pdfBuffer = Buffer.from(pdfBase64.split(",")[1] || pdfBase64, "base64");
       await transporter.sendMail({
         from: `"Restoran Wawasan" <${process.env.SMTP_USER}>`,
         to: email,
         subject: emailSubject,
-        text: emailBody,
+        text: htmlBody ? void 0 : emailBody,
+        html: htmlBody,
         attachments: [
           {
             filename: `Invoice_${invoiceNo}.pdf`,
@@ -720,10 +958,10 @@ Restoran Wawasan`;
         }
         let updatedInFirestore = false;
         try {
-          await (0, import_firestore.updateDoc)((0, import_firestore.doc)(db, "orders", orderId), data);
+          await runWithRetry(() => (0, import_firestore.updateDoc)((0, import_firestore.doc)(db, "orders", orderId), data));
           updatedInFirestore = true;
         } catch (dbErr) {
-          console.warn("Firestore update failed, relying on local backup:", dbErr);
+          console.warn("Firestore update failed after retries, relying on local backup:", dbErr);
         }
         const localOrders = getLocalOrders();
         const localIndex = localOrders.findIndex((o) => o.id === orderId);
@@ -752,9 +990,9 @@ Restoran Wawasan`;
           return res.status(400).json({ error: "Missing orderId for delete" });
         }
         try {
-          await (0, import_firestore.deleteDoc)((0, import_firestore.doc)(db, "orders", orderId));
+          await runWithRetry(() => (0, import_firestore.deleteDoc)((0, import_firestore.doc)(db, "orders", orderId)));
         } catch (dbErr) {
-          console.warn("Firestore delete failed, relying on local backup:", dbErr);
+          console.warn("Firestore delete failed after retries, relying on local backup:", dbErr);
         }
         const localOrders = getLocalOrders();
         const filtered = localOrders.filter((o) => o.id !== orderId);

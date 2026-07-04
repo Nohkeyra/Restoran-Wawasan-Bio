@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import nodemailer from "nodemailer";
 import cors from "cors";
+import admin from "firebase-admin"; // Added
 import { initializeApp as initializeClientApp, getApps as getClientApps } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { 
@@ -65,6 +66,36 @@ const db = getClientFirestore(clientApp, firebaseConfig.firestoreDatabaseId);
 const auth = getAuth(clientApp);
 const adminEmail = process.env.ADMIN_EMAIL;
 const adminPassword = process.env.ADMIN_PASSWORD;
+
+// Lazy initialize Firebase Admin
+let adminApp: admin.app.App | null = null;
+function getAdminApp() {
+  if (!adminApp) {
+    if (admin.apps.length === 0) {
+      adminApp = admin.initializeApp();
+    } else {
+      adminApp = admin.apps[0]!;
+    }
+  }
+  return adminApp;
+}
+
+async function sendNotificationToTopic(topic: string, title: string, body: string) {
+  try {
+    const app = getAdminApp();
+    const message = {
+      notification: {
+        title,
+        body,
+      },
+      topic: topic,
+    };
+    const response = await admin.messaging(app).send(message);
+    console.log(`Successfully sent message to topic ${topic}:`, response);
+  } catch (error) {
+    console.error(`Error sending message to topic ${topic}:`, error);
+  }
+}
 
 if (adminEmail && adminPassword) {
   signInWithEmailAndPassword(auth, adminEmail, adminPassword)
@@ -398,6 +429,11 @@ async function startServer() {
       // Trigger background Google Calendar event creation safely without blocking client response
       syncGoogleCalendarEvent(orderId, orderData).catch(err => {
         console.error("Background Google Calendar event creation error:", err);
+      });
+
+      // Trigger push notification
+      sendNotificationToTopic("new_orders", "New Order Received!", `New order from ${orderData.name || 'Customer'} - ${orderData.quantity || '0'} pax.`).catch(err => {
+        console.error("Background push notification error:", err);
       });
 
       res.json({ success: true, id: orderId });
@@ -1053,6 +1089,23 @@ async function startServer() {
   });
 
   // Gated Admin orders operations bypassing client-side security restrictions via Client SDK
+  app.post("/api/admin/subscribe-to-topic", async (req, res) => {
+    try {
+      const { token, topic } = req.body;
+      if (!token || !topic) {
+        return res.status(400).json({ error: "Missing token or topic" });
+      }
+      
+      const app = getAdminApp();
+      await admin.messaging(app).subscribeToTopic(token, topic);
+      console.log(`Successfully subscribed token to topic ${topic}`);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error subscribing to topic:", err);
+      res.status(500).json({ error: "Failed to subscribe" });
+    }
+  });
+
   app.post("/api/admin/orders", async (req, res) => {
     try {
       const { password, action, orderId, data } = req.body;
@@ -1183,7 +1236,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    const distPath = path.join(process.cwd(), 'dist/client');
     app.use(express.static(distPath));
     app.get('*all', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));

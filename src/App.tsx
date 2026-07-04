@@ -1,11 +1,11 @@
-import { useEffect, Suspense, lazy } from 'react';
+import { useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { ToastProvider } from '@/components/ui/Toast';
 
-const LandingPage = lazy(() => import('@/pages/LandingPage'));
-const OrderPage = lazy(() => import('@/pages/OrderPage'));
-const AdminPage = lazy(() => import('@/pages/AdminPage'));
+import LandingPage from '@/pages/LandingPage';
+import OrderPage from '@/pages/OrderPage';
+import AdminPage from '@/pages/AdminPage';
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -48,13 +48,11 @@ function AppContent() {
     <>
       <ScrollToTop />
       <SmoothScrollHandler />
-      <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/order" element={<OrderPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-        </Routes>
-      </Suspense>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/order" element={<OrderPage />} />
+        <Route path="/admin" element={<AdminPage />} />
+      </Routes>
     </>
   );
 }

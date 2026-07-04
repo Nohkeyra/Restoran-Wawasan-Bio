@@ -69,10 +69,9 @@ export default function VisitSection() {
           <div ref={imageRef} className="relative">
             <div className="relative border-2 border-warm-gold/30 rounded-xl overflow-hidden w-full">
               <img
-                src={`${import.meta.env.BASE_URL}assets/wawasan-bridge-night.jpg`}
+                src={`/assets/wawasan-bridge-night.jpg`}
                 alt="Jambatan Wawasan (Wawasan Bridge) night view in Putrajaya"
                 loading="lazy"
-                referrerPolicy="no-referrer"
                 className="w-full h-auto object-cover"
               />
               {/* Corner decorations */}

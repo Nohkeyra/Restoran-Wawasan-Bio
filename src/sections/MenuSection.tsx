@@ -11,7 +11,7 @@ const MENU_ITEMS = [
     descBm: 'Kegemaran ramai #1 — rebusan ikan asam pedas dengan rasa masam dan berani yang ketara. Klasik Melayu sejati.',
     priceEn: 'From RM 8',
     priceBm: 'Daripada RM 8',
-    image: `${import.meta.env.BASE_URL}assets/asam-pedas.jpg`,
+    image: `/assets/asam-pedas.jpg`,
   },
   {
     nameEn: 'Nasi Lemak',
@@ -20,7 +20,7 @@ const MENU_ITEMS = [
     descBm: 'Hidangan kebangsaan Malaysia — nasi santan wangi bersama sambal, ikan bilis, kacang tanah, timun & telur.',
     priceEn: 'From RM 3',
     priceBm: 'Daripada RM 3',
-    image: `${import.meta.env.BASE_URL}assets/nasi-lemak.jpg`,
+    image: `/assets/nasi-lemak.jpg`,
   },
   {
     nameEn: 'Lontong Singapore',
@@ -29,7 +29,7 @@ const MENU_ITEMS = [
     descBm: 'Nasi himpit di dalam kuah lodeh sayur bersantan pekat bersama kuubisan, kacang panjang, dan sambal.',
     priceEn: 'From RM 7',
     priceBm: 'Daripada RM 7',
-    image: `${import.meta.env.BASE_URL}assets/lontong-singapore.jpg`,
+    image: `/assets/lontong-singapore.jpg`,
   },
   {
     nameEn: 'Mee Soto',
@@ -38,7 +38,7 @@ const MENU_ITEMS = [
     descBm: 'Sup mi ayam aromatik bersama carikan isi ayam, taugeh, dan bawang goreng garing.',
     priceEn: 'From RM 6',
     priceBm: 'Daripada RM 6',
-    image: `${import.meta.env.BASE_URL}assets/mee-soto.jpg`,
+    image: `/assets/mee-soto.jpg`,
   },
   {
     nameEn: 'Rendang Padang',
@@ -47,7 +47,7 @@ const MENU_ITEMS = [
     descBm: 'Daging yang dimasak perlahan di dalam santan kaya dan rempah-ratus — empuk, berperisa, dan amat memuaskan.',
     priceEn: 'From RM 10',
     priceBm: 'Daripada RM 10',
-    image: `${import.meta.env.BASE_URL}assets/rendang-padang.jpg`,
+    image: `/assets/rendang-padang.jpg`,
   },
   {
     nameEn: 'Rojak Singapore',
@@ -56,7 +56,7 @@ const MENU_ITEMS = [
     descBm: 'Keistimewaan hari Jumaat kami yang terkenal — tauhu garing, timun, dan taugeh digaul bersama kuah petis udang khas, bijian bijan dan sedikit pedas.',
     priceEn: 'From RM 7',
     priceBm: 'Daripada RM 7',
-    image: `${import.meta.env.BASE_URL}assets/rojak-singapore.jpg`,
+    image: `/assets/rojak-singapore.jpg`,
   },
   {
     nameEn: 'Nasi Goreng Kampung',
@@ -65,7 +65,7 @@ const MENU_ITEMS = [
     descBm: 'Nasi goreng gaya kampung bersama ikan bilis rangup, kangkung, dan telur mata di atasnya.',
     priceEn: 'From RM 7',
     priceBm: 'Daripada RM 7',
-    image: `${import.meta.env.BASE_URL}assets/nasi-goreng-kampung.jpg`,
+    image: `/assets/nasi-goreng-kampung.jpg`,
   },
 ];
 

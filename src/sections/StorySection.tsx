@@ -72,7 +72,7 @@ export default function StorySection() {
           <div ref={imageRef} className="relative">
             <div className="relative overflow-hidden rounded-xl">
               <img
-                src={`${import.meta.env.BASE_URL}assets/story-interior.jpg`}
+                src={`/assets/story-interior.jpg`}
                 alt="Restoran Wawasan Pak Usop interior with food display"
                 loading="lazy"
                 className="w-full aspect-[3/4] object-cover hover:scale-[1.03] transition-transform duration-500"

@@ -4,6 +4,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Utensils, Menu, X, Languages } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MobileMenu from './MobileMenu';
+import SettingsDialog from './SettingsDialog';
 
 const NAV_LINKS = [
   { label: 'story', href: '#story' },
@@ -25,10 +26,10 @@ export default function Header() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-[1000] h-[72px] flex items-center justify-between px-6 md:px-12 transition-all duration-400 ${
+        className={`fixed top-0 left-0 right-0 z-[1000] h-[80px] flex items-center justify-between px-6 md:px-12 transition-all duration-500 ${
           isScrolled
-            ? 'bg-charcoal/95 backdrop-blur-xl shadow-[0_2px_20px_rgba(0,0,0,0.3)]'
-            : 'bg-transparent'
+            ? 'bg-charcoal/90 backdrop-blur-md border-b border-warm-gold/15 shadow-[0_4px_30px_rgba(0,0,0,0.4)]'
+            : 'bg-transparent border-b border-transparent'
         }`}
       >
         {/* Logo */}
@@ -69,6 +70,8 @@ export default function Header() {
             <Languages className="w-4 h-4" />
             <span className="uppercase tracking-wider">{language === 'en' ? 'BM' : 'EN'}</span>
           </button>
+          
+          <SettingsDialog />
 
           <div className="hidden md:block w-[1px] h-6 bg-cream/20" />
 

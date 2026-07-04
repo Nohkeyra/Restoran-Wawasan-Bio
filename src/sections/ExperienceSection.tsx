@@ -55,7 +55,7 @@ export default function ExperienceSection() {
       {/* Image Band */}
       <div ref={imageRef} className="relative w-full h-[250px] md:h-[400px] overflow-hidden">
         <img
-          src={`${import.meta.env.BASE_URL}assets/putrajaya-lake-view.jpg`}
+          src={`/assets/putrajaya-lake-view.jpg`}
           alt="Putrajaya lake and Putra Mosque view"
           loading="lazy"
           className="w-full h-full object-cover"
