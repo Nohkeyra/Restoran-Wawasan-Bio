@@ -31,17 +31,15 @@ import {
   Search,
   Utensils,
   ArrowLeft,
-  Calendar,
   Send,
   Mail,
   MessageSquare
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { Link } from 'react-router-dom';
-import { format, addHours } from 'date-fns';
+import { format } from 'date-fns';
 import { generateInvoicePDF } from '@/services/pdfService';
-import { numberToWordsBM } from '@/services/numberToWordsBM';
-import { initAuth, googleSignIn, getAccessToken } from '@/services/authService';
+import { numberToWords } from '@/services/numberToWordsBM';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -91,8 +89,11 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
   const [searchTerm, setSearchTerm] = useState('');
   const [generatingInvoice, setGeneratingInvoice] = useState<string | null>(null);
   const [isApproving, setIsApproving] = useState(false);
-  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
-  const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
+
+  // PDF Preview States
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState('');
+  const [previewFileName, setPreviewFileName] = useState('');
 
   // Send Invoice Dialog States
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
@@ -132,74 +133,11 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
     }
   };
 
-  // Fetch orders and init Auth
+  // Fetch orders on load
   useEffect(() => {
     fetchOrders();
-
-    // Init Google Auth
-    const unsubscribeAuth = initAuth(
-      () => setIsGoogleConnected(true),
-      () => setIsGoogleConnected(false)
-    );
-
-    return () => {
-      unsubscribeAuth();
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminPassword]);
-
-  const handleGoogleConnect = async () => {
-    setIsConnectingGoogle(true);
-    try {
-      await googleSignIn();
-      setIsGoogleConnected(true);
-    } catch (err: unknown) {
-      console.error('Failed to connect Google Calendar:', err);
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      window.alert('Google Calendar Connection Error: ' + errorMessage);
-    } finally {
-      setIsConnectingGoogle(false);
-    }
-  };
-
-  const createCalendarEvent = async (order: Order, invoiceNo: string) => {
-    try {
-      const token = await getAccessToken();
-      if (!token) return;
-
-      const eventStartTime = new Date(order.dateTime);
-      const eventEndTime = addHours(eventStartTime, 3); // Consistent 3-hour duration
-
-      const event = {
-        summary: `Catering: ${order.to} (${order.quantity} pax)`,
-        location: order.location,
-        description: `Invoice: ${invoiceNo}\nContact: ${order.name} (${order.contact})\nMeals: ${order.meals.join(', ')}\nMenu: ${order.menu}\nNotes: ${order.notes}`,
-        start: {
-          dateTime: eventStartTime.toISOString(),
-        },
-        end: {
-          dateTime: eventEndTime.toISOString(),
-        },
-      };
-
-      const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(event),
-      });
-
-      if (!response.ok) {
-        console.error('Failed to create calendar event:', await response.text());
-      } else {
-        console.log('Successfully created calendar event');
-      }
-    } catch (err) {
-      console.error('Error creating calendar event:', err);
-    }
-  };
 
   const handleApprove = async (orderId: string) => {
     setIsApproving(true);
@@ -242,11 +180,6 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
 
       if (!updateResponse.ok) {
         throw new Error('Failed to update order details on server');
-      }
-
-      // Sync to Google Calendar if connected
-      if (isGoogleConnected) {
-        await createCalendarEvent(order, invoiceNo);
       }
 
       // Generate and download PDF
@@ -368,8 +301,10 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
           url: savedFile.uri,
         });
       } else {
-        const pdfBlobUrl = pdfDoc.output('bloburl');
-        window.open(pdfBlobUrl, '_blank');
+        const pdfDataUri = pdfDoc.output('datauristring');
+        setPreviewPdfUrl(pdfDataUri);
+        setPreviewFileName(fileName);
+        setIsPreviewOpen(true);
       }
     } catch (error: unknown) {
       console.error('Error in preview:', error);
@@ -613,25 +548,10 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
               </p>
             </div>
             
-            {!isGoogleConnected ? (
-              <Button 
-                onClick={handleGoogleConnect} 
-                disabled={isConnectingGoogle}
-                className="bg-white hover:bg-gray-100 text-gray-900 border border-gray-200"
-              >
-                {isConnectingGoogle ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Calendar className="w-4 h-4 mr-2 text-blue-600" />
-                )}
-                Connect Google Calendar
-              </Button>
-            ) : (
-              <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-400 border border-green-500/20 rounded-md">
-                <CheckCircle className="w-4 h-4" />
-                <span className="text-sm font-medium">Calendar Synced</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-400 border border-green-500/20 rounded-md">
+              <CheckCircle className="w-4 h-4" />
+              <span className="text-sm font-medium">Calendar Auto-Synced</span>
+            </div>
           </div>
 
           {/* Search */}
@@ -886,10 +806,10 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
                     </span>
                   </div>
                   <p className="text-sm text-cream/50 italic">
-                    {numberToWordsBM(selectedOrder.meals.reduce((total, meal) => {
+                    {numberToWords(selectedOrder.meals.reduce((total, meal) => {
                       const price = parseFloat(prices[meal] || '0');
                       return total + (price * selectedOrder.quantity);
-                    }, 0))}
+                    }, 0), selectedOrder.lang)}
                   </p>
                 </div>
               </div>
@@ -1043,6 +963,58 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
               className="border-warm-gold/30 text-cream hover:bg-warm-gold/10 w-full md:w-auto text-sm"
             >
               {language === 'en' ? 'Cancel' : 'Batal'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF Preview Dialog */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl w-[90vw] h-[85vh] bg-deep-brown border-warm-gold/20 text-cream flex flex-col p-6">
+          <DialogHeader className="pb-2 border-b border-warm-gold/10 flex-shrink-0">
+            <DialogTitle className="text-xl font-display font-bold text-warm-gold">
+              {previewFileName || 'PDF Preview'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 min-h-0 bg-charcoal/50 rounded-lg overflow-hidden relative my-4 border border-warm-gold/10">
+            {previewPdfUrl ? (
+              <iframe
+                src={previewPdfUrl}
+                title="PDF Preview Frame"
+                className="w-full h-full border-0"
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-cream/40">
+                {t('loading') || 'Loading preview...'}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 pt-2 border-t border-warm-gold/10 justify-end flex-shrink-0">
+            <Button
+              onClick={() => {
+                const link = document.createElement('a');
+                link.href = previewPdfUrl;
+                link.download = previewFileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+              className="bg-warm-gold text-charcoal font-semibold hover:bg-[#E0BC74]"
+            >
+              <FileDown className="w-4 h-4 mr-2" />
+              {language === 'en' ? 'Download' : 'Muat Turun'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsPreviewOpen(false);
+                setPreviewPdfUrl('');
+              }}
+              className="border-warm-gold/30 text-cream hover:bg-warm-gold/10"
+            >
+              {t('close') || 'Close'}
             </Button>
           </DialogFooter>
         </DialogContent>

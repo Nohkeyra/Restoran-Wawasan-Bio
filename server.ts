@@ -95,9 +95,28 @@ if (adminEmail && adminPassword) {
 // Self-healing Local JSON Database Fallback
 const LOCAL_DB_PATH = path.join(process.cwd(), "orders.json");
 
+// Robust Firestore operation retry mechanism to minimize reliance on the transient file system
+async function runWithRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 1000): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      console.warn(`[Firestore Retry] Attempt ${attempt} failed. Retrying in ${delayMs}ms... Error:`, error);
+      if (attempt < retries) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        delayMs *= 2; // exponential backoff
+      }
+    }
+  }
+  throw lastError;
+}
+
 function getLocalOrders(): Record<string, unknown>[] {
   try {
     if (fs.existsSync(LOCAL_DB_PATH)) {
+      console.warn("[WARNING] Reading from local fallback file 'orders.json'. Note: This local file system is ephemeral and transient. All local changes will be lost upon container restart or redeployment.");
       return JSON.parse(fs.readFileSync(LOCAL_DB_PATH, "utf-8")) as Record<string, unknown>[];
     }
   } catch (err) {
@@ -108,6 +127,7 @@ function getLocalOrders(): Record<string, unknown>[] {
 
 function saveLocalOrders(orders: Record<string, unknown>[]) {
   try {
+    console.warn("[WARNING] Writing to local fallback file 'orders.json'. Note: This local file system is ephemeral and transient. All local changes will be lost upon container restart or redeployment.");
     fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(orders, null, 2), "utf-8");
   } catch (err) {
     console.error("Error writing to local orders database:", err);
@@ -191,7 +211,7 @@ async function syncGoogleCalendarEvent(orderId: string, passedOrderData?: OrderD
     if (orderData.dateTime) {
       startDateTime = new Date(orderData.dateTime);
     } else if (orderData.date) {
-      startDateTime = new Date(`${orderData.date}T${orderData.time || '12:00'}:00`);
+      startDateTime = new Date(`${orderData.date}T${orderData.time || '12:00'}:00+08:00`);
     } else {
       startDateTime = new Date();
     }
@@ -354,14 +374,14 @@ async function startServer() {
       let savedInFirestore = false;
 
       try {
-        const docRef = await addDoc(collection(db, "orders"), {
+        const docRef = await runWithRetry(() => addDoc(collection(db, "orders"), {
           ...orderData,
           adminPasscode: process.env.ADMIN_PASSWORD || "wawasan123"
-        });
+        }));
         orderId = docRef.id;
         savedInFirestore = true;
       } catch (dbErr) {
-        console.warn("Firestore order submission failed, saving locally:", dbErr);
+        console.warn("Firestore order submission failed after retries, saving locally:", dbErr);
       }
 
       if (!savedInFirestore) {
@@ -439,9 +459,9 @@ async function startServer() {
       if (!isLocal) {
         try {
           const docRef = doc(db, collectionName, submissionId);
-          await updateDoc(docRef, updatedFields);
+          await runWithRetry(() => updateDoc(docRef, updatedFields));
         } catch (dbErr) {
-          console.warn("Firestore update in bill failed, syncing locally:", dbErr);
+          console.warn("Firestore update in bill failed after retries, syncing locally:", dbErr);
           isLocal = true;
         }
       }
@@ -859,10 +879,10 @@ async function startServer() {
         
         let updatedInFirestore = false;
         try {
-          await updateDoc(doc(db, "orders", orderId), data);
+          await runWithRetry(() => updateDoc(doc(db, "orders", orderId), data));
           updatedInFirestore = true;
         } catch (dbErr) {
-          console.warn("Firestore update failed, relying on local backup:", dbErr);
+          console.warn("Firestore update failed after retries, relying on local backup:", dbErr);
         }
 
         // Also update in local orders
@@ -898,9 +918,9 @@ async function startServer() {
         }
         
         try {
-          await deleteDoc(doc(db, "orders", orderId));
+          await runWithRetry(() => deleteDoc(doc(db, "orders", orderId)));
         } catch (dbErr) {
-          console.warn("Firestore delete failed, relying on local backup:", dbErr);
+          console.warn("Firestore delete failed after retries, relying on local backup:", dbErr);
         }
 
         // Also delete in local orders

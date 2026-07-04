@@ -42,7 +42,7 @@ service cloud.firestore {
 
       allow update: if 
         // Only authenticated admin/server can update
-        request.auth != null &&
+        request.auth != null && request.auth.token.email == "wawasan.orders@gmail.com" &&
         
         // ID bounds
         orderId.size() >= 5 && orderId.size() <= 50 &&

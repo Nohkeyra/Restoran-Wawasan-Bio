@@ -239,10 +239,14 @@ export const generateInvoicePDF = (order: Order, isFinal: boolean, lang: 'en' | 
   doc.setFontSize(8.5);
 
   if (isFinal && order.totalAmount) {
-    const spelledWords = numberToWords(order.totalAmount, 'bm').toUpperCase();
-    doc.text(`RINGGIT MALAYSIA ${spelledWords} SAHAJA`, 15, textNoteY);
+    const spelledWords = numberToWords(order.totalAmount, lang).toUpperCase();
+    doc.text(spelledWords, 15, textNoteY);
   } else {
-    doc.text('RINGGIT MALAYSIA ____________________________________________________________________ SAHAJA', 15, textNoteY);
+    if (lang === 'en') {
+      doc.text('RINGGIT MALAYSIA ____________________________________________________________________ ONLY', 15, textNoteY);
+    } else {
+      doc.text('RINGGIT MALAYSIA ____________________________________________________________________ SAHAJA', 15, textNoteY);
+    }
   }
 
   // Orange vertical bar accent
