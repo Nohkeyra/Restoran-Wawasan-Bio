@@ -360,7 +360,8 @@ export default function OrderForm() {
             invoiceNo: invoiceNo,
             pdfBase64: pdfBase64,
             isFinal: false,
-            lang: language
+            lang: language,
+            orderDetails: orderData
           })
         });
         
