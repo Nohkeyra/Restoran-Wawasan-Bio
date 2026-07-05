@@ -18,7 +18,7 @@ interface FirebaseConfig {
   firestoreDatabaseId?: string;
 }
 
-let firebaseConfig: FirebaseConfig = {
+const firebaseConfig: FirebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY || "AIzaSyCaCFMk6K8go9Wgt-jdNd6QTvD8JbsTkY4",
   authDomain: process.env.FIREBASE_AUTH_DOMAIN || "restoran-wawasan.firebaseapp.com",
   projectId: process.env.FIREBASE_PROJECT_ID || "restoran-wawasan",
@@ -29,19 +29,13 @@ let firebaseConfig: FirebaseConfig = {
   firestoreDatabaseId: undefined
 };
 
-try {
-  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-  if (fs.existsSync(configPath)) {
-    const appletConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-    firebaseConfig = {
-      ...firebaseConfig,
-      ...appletConfig,
-      firestoreDatabaseId: appletConfig.firestoreDatabaseId || undefined
-    };
-  }
-} catch (err) {
-  console.warn("Failed to load local firebase-applet-config.json, using default credentials:", err);
-}
+// IMPORTANT: The backend Express server must ALWAYS connect to the production
+// Firebase project (restoran-wawasan), regardless of environment. Unlike the
+// frontend (which legitimately switches to a sandbox project during AI Studio
+// preview), this server only ever runs on Render as the real production
+// backend — so it must never read firebase-applet-config.json or any other
+// sandbox override. Doing so previously caused orders, invoice counters, and
+// calendar syncs to silently target the wrong Firestore project.
 
 // Self-healing Local JSON Database Fallback
 const LOCAL_DB_PATH = path.join(process.cwd(), "orders.json");
