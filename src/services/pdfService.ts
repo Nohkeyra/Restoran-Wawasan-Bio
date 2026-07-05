@@ -173,9 +173,13 @@ export const generateInvoicePDF = (order: Order, isFinal: boolean, lang: 'en' | 
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
-  doc.text('Jenis Hidangan', 18, tableStartY + 4.8);
-  doc.text('Harga / Pax (RM)', 120, tableStartY + 4.8, { align: 'center' });
-  doc.text('Jumlah (RM)', 192, tableStartY + 4.8, { align: 'right' });
+  const headerLabels = lang === 'en' 
+    ? { item: 'Meal Type', price: 'Price / Pax (RM)', total: 'Amount (RM)' }
+    : { item: 'Jenis Hidangan', price: 'Harga / Pax (RM)', total: 'Jumlah (RM)' };
+    
+  doc.text(headerLabels.item, 18, tableStartY + 4.8);
+  doc.text(headerLabels.price, 120, tableStartY + 4.8, { align: 'center' });
+  doc.text(headerLabels.total, 192, tableStartY + 4.8, { align: 'right' });
 
   // Render Table Rows
   let currentY = tableStartY + 7;
@@ -197,7 +201,10 @@ export const generateInvoicePDF = (order: Order, isFinal: boolean, lang: 'en' | 
     doc.setTextColor(cCharcoal[0], cCharcoal[1], cCharcoal[2]);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
-    doc.text(mealLabelsMap[meal] || meal, 18, currentY + 4.8);
+    
+    // Use translated meal label if available
+    const mealLabel = mealLabelsMap[meal] || meal;
+    doc.text(mealLabel, 18, currentY + 4.8);
 
     doc.setFont('helvetica', 'normal');
     const hasPrice = isFinal && order.prices && order.prices[meal] !== undefined;
@@ -276,9 +283,9 @@ export const generateInvoicePDF = (order: Order, isFinal: boolean, lang: 'en' | 
   doc.setTextColor(cCharcoal[0], cCharcoal[1], cCharcoal[2]);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.text('Nama', 18, bankBoxY + 11);
-  doc.text('Bank', 18, bankBoxY + 15);
-  doc.text('No. Akaun', 18, bankBoxY + 19);
+  doc.text(lang === 'en' ? 'Name' : 'Nama', 18, bankBoxY + 11);
+  doc.text(lang === 'en' ? 'Bank' : 'Bank', 18, bankBoxY + 15);
+  doc.text(lang === 'en' ? 'Account No.' : 'No. Akaun', 18, bankBoxY + 19);
 
   doc.setFont('helvetica', 'bold');
   doc.text('RESTORAN WAWASAN', 42, bankBoxY + 11);

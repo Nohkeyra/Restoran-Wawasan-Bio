@@ -123,10 +123,8 @@ export default function OrderForm() {
     navigator.clipboard.writeText(window.location.origin + window.location.pathname);
     setCopied(true);
     toast({
-      title: language === 'en' ? 'Link Copied!' : 'Pautan Disalin!',
-      description: language === 'en' 
-        ? 'The form link has been copied to your clipboard.' 
-        : 'Pautan borang telah disalin ke papan klip anda.',
+      title: t('link_copied'),
+      description: t('link_copied_desc'),
       variant: 'success',
       duration: 3000
     });
@@ -158,10 +156,10 @@ export default function OrderForm() {
 
     // Deep validation of required fields to give a premium, animated toast warning feedback
     if (!formData.to) {
-      const errMsg = language === 'en' ? 'Please select or specify a company/organization.' : 'Sila pilih atau nyatakan syarikat/organisasi.';
+      const errMsg = t('select_company');
       setSubmitError(errMsg);
       toast({
-        title: language === 'en' ? 'Missing Details' : 'Maklumat Kurang',
+        title: t('missing_details'),
         description: errMsg,
         variant: 'warning'
       });
@@ -169,10 +167,10 @@ export default function OrderForm() {
     }
 
     if (!formData.menu) {
-      const errMsg = language === 'en' ? 'Please specify your preferred menu.' : 'Sila nyatakan menu pilihan anda.';
+      const errMsg = t('enter_preferred_menu');
       setSubmitError(errMsg);
       toast({
-        title: language === 'en' ? 'Preferred Menu Missing' : 'Menu Pilihan Kurang',
+        title: t('preferred_menu'),
         description: errMsg,
         variant: 'warning'
       });
@@ -180,10 +178,10 @@ export default function OrderForm() {
     }
 
     if (formData.quantity === '' || formData.quantity <= 0) {
-      const errMsg = language === 'en' ? 'Please enter a valid quantity (Pax).' : 'Sila masukkan kuantiti (Pax) yang sah.';
+      const errMsg = t('invalid_quantity');
       setSubmitError(errMsg);
       toast({
-        title: language === 'en' ? 'Invalid Quantity' : 'Kuantiti Tidak Sah',
+        title: t('invalid_quantity'),
         description: errMsg,
         variant: 'warning'
       });
@@ -191,10 +189,10 @@ export default function OrderForm() {
     }
 
     if (!formData.date) {
-      const errMsg = language === 'en' ? 'Please select an event date.' : 'Sila pilih tarikh majlis.';
+      const errMsg = t('select_event_date');
       setSubmitError(errMsg);
       toast({
-        title: language === 'en' ? 'Select Event Date' : 'Pilih Tarikh Majlis',
+        title: t('select_event_date'),
         description: errMsg,
         variant: 'warning'
       });
@@ -202,10 +200,10 @@ export default function OrderForm() {
     }
 
     if (formData.meals.length === 0) {
-      const errMsg = language === 'en' ? 'Please select at least one meal type.' : 'Sila pilih sekurang-kurangnya satu jenis hidangan.';
+      const errMsg = t('meal_for');
       setSubmitError(errMsg);
       toast({
-        title: language === 'en' ? 'Meal Type Missing' : 'Jenis Hidangan Kurang',
+        title: t('meal_for'),
         description: errMsg,
         variant: 'warning'
       });
@@ -213,10 +211,10 @@ export default function OrderForm() {
     }
 
     if (!formData.location || formData.location.trim() === '') {
-      const errMsg = language === 'en' ? 'Please provide the full event venue address.' : 'Sila berikan alamat lengkap lokasi majlis.';
+      const errMsg = t('venue_address');
       setSubmitError(errMsg);
       toast({
-        title: language === 'en' ? 'Missing Location' : 'Lokasi Kurang',
+        title: t('missing_location'),
         description: errMsg,
         variant: 'warning'
       });
@@ -224,10 +222,10 @@ export default function OrderForm() {
     }
 
     if (!formData.name || formData.name.trim() === '') {
-      const errMsg = language === 'en' ? 'Please enter the name of the Person In Charge (PIC).' : 'Sila masukkan nama Orang Dipertanggungjawabkan (PIC).';
+      const errMsg = t('pic_name_required');
       setSubmitError(errMsg);
       toast({
-        title: language === 'en' ? 'PIC Name Required' : 'Nama PIC Diperlukan',
+        title: t('pic_name_required'),
         description: errMsg,
         variant: 'warning'
       });
@@ -235,10 +233,10 @@ export default function OrderForm() {
     }
 
     if (!formData.contact || formData.contact.trim() === '') {
-      const errMsg = language === 'en' ? 'Please enter a valid contact number.' : 'Sila masukkan nombor telefon yang sah.';
+      const errMsg = t('contact_required');
       setSubmitError(errMsg);
       toast({
-        title: language === 'en' ? 'Contact Number Required' : 'Nombor Telefon Diperlukan',
+        title: t('contact_required'),
         description: errMsg,
         variant: 'warning'
       });
@@ -246,10 +244,10 @@ export default function OrderForm() {
     }
 
     if (!formData.email || formData.email.trim() === '') {
-      const errMsg = language === 'en' ? 'Please enter your email address.' : 'Sila masukkan alamat emel anda.';
+      const errMsg = t('email_required');
       setSubmitError(errMsg);
       toast({
-        title: language === 'en' ? 'Email Required' : 'Emel Diperlukan',
+        title: t('email_required'),
         description: errMsg,
         variant: 'warning'
       });
@@ -260,7 +258,7 @@ export default function OrderForm() {
       const errMsg = t('email_mismatch');
       setSubmitError(errMsg);
       toast({
-        title: language === 'en' ? 'Email Mismatch' : 'Emel Tidak Sepadan',
+        title: t('email_mismatch_title'),
         description: errMsg,
         variant: 'warning'
       });
@@ -369,10 +367,8 @@ export default function OrderForm() {
           console.warn('Failed to send auto-response email. Ensure SMTP is configured in the backend (.env).');
           setEmailStatus('failed');
           toast({
-            title: language === 'en' ? 'Email Failed' : 'Penghantaran Emel Gagal',
-            description: language === 'en'
-              ? 'Invoice downloaded but copy could not be emailed. Please check server SMTP configurations.'
-              : 'Invois telah dimuat turun tetapi salinan emel tidak dapat dihantar. Sila periksa konfigurasi SMTP pelayan.',
+            title: t('error'),
+            description: t('email_failed').replace('{email}', orderData.email),
             variant: 'warning',
             duration: 6000
           });
@@ -380,10 +376,8 @@ export default function OrderForm() {
           console.log('Auto-response email sent to customer!');
           setEmailStatus('success');
           toast({
-            title: language === 'en' ? 'Invoice Emailed!' : 'Invois Dihantar!',
-            description: language === 'en'
-              ? `A copy of the invoice has been successfully emailed to ${orderData.email}.`
-              : `Salinan invois telah berjaya dihantar ke emel ${orderData.email}.`,
+            title: t('invoice_emailed'),
+            description: t('email_sent_to').replace('{email}', orderData.email),
             variant: 'success',
             duration: 5000
           });
@@ -392,20 +386,16 @@ export default function OrderForm() {
         console.error('Error sending auto-response email:', emailError);
         setEmailStatus('failed');
         toast({
-          title: language === 'en' ? 'Email Failed' : 'Penghantaran Emel Gagal',
-          description: language === 'en'
-            ? 'An error occurred while emailing the invoice copy.'
-            : 'Ralat berlaku semasa menghantar salinan emel invois.',
+          title: t('error'),
+          description: t('email_failed').replace('{email}', formData.email),
           variant: 'error'
         });
       }
       
       setIsSuccess(true);
       toast({
-        title: language === 'en' ? 'Order Submitted!' : 'Pesanan Dihantar!',
-        description: language === 'en'
-          ? 'Your booking has been received and your invoice is downloaded.'
-          : 'Tempahan anda telah diterima dan invois anda telah dimuat turun.',
+        title: t('order_submitted_title'),
+        description: t('order_submitted_desc'),
         variant: 'success',
         duration: 5000
       });
@@ -414,7 +404,7 @@ export default function OrderForm() {
       const errMsg = t('order_error');
       setSubmitError(errMsg);
       toast({
-        title: language === 'en' ? 'Submission Failed' : 'Penghantaran Gagal',
+        title: t('error'),
         description: errMsg,
         variant: 'error'
       });
@@ -459,15 +449,13 @@ export default function OrderForm() {
         
         <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-left space-y-3">
           <p className="text-xs text-charcoal/40 font-bold uppercase tracking-wider">
-            {language === 'en' ? 'Invoice & Email Status' : 'Status Invois & Emel'}
+            {t('invoice_status')}
           </p>
           <div className="text-sm text-charcoal/80 space-y-2">
             <p className="flex items-start gap-2">
               <span className="text-green-600 font-bold">✓</span>
               <span>
-                {language === 'en'
-                  ? 'Your preliminary invoice PDF was generated and downloaded successfully!'
-                  : 'Invois awal PDF anda telah berjaya dijana dan dimuat turun!'}
+                {t('pdf_generated')}
               </span>
             </p>
             
@@ -475,9 +463,7 @@ export default function OrderForm() {
               <p className="flex items-start gap-2 text-charcoal/60 animate-pulse">
                 <span className="text-warm-gold font-bold">●</span>
                 <span>
-                  {language === 'en'
-                    ? 'Sending email copy to your inbox...'
-                    : 'Menghantar salinan emel ke peti masuk anda...'}
+                  {t('sending_email')}
                 </span>
               </p>
             )}
@@ -486,9 +472,7 @@ export default function OrderForm() {
               <p className="flex items-start gap-2 text-slate-700">
                 <span className="text-green-600 font-bold">✓</span>
                 <span>
-                  {language === 'en'
-                    ? `An invoice email was sent to ${formData.email}. Please check your Inbox and Spam/Junk folder!`
-                    : `Satu emel invois telah dihantar ke ${formData.email}. Sila semak Inbox dan folder Spam/Junk anda!`}
+                  {t('email_sent_to').replace('{email}', formData.email)}
                 </span>
               </p>
             )}
@@ -497,9 +481,7 @@ export default function OrderForm() {
               <p className="flex items-start gap-2 text-red-600">
                 <span className="text-red-500 font-bold">⚠️</span>
                 <span>
-                  {language === 'en'
-                    ? `We couldn't send an email to ${formData.email}. Please verify SMTP settings in the server .env configuration.`
-                    : `Kami tidak dapat menghantar emel ke ${formData.email}. Sila sahkan tetapan SMTP dalam konfigurasi .env server.`}
+                  {t('email_failed').replace('{email}', formData.email)}
                 </span>
               </p>
             )}
@@ -511,7 +493,7 @@ export default function OrderForm() {
             onClick={handleResetForm}
             className="px-6 py-2.5 bg-warm-gold hover:bg-warm-gold/90 text-white rounded-xl font-semibold text-sm transition-colors cursor-pointer"
           >
-            {language === 'en' ? 'Create Another Booking' : 'Buat Tempahan Baru'}
+            {t('create_another')}
           </button>
 
           <button
@@ -521,12 +503,12 @@ export default function OrderForm() {
             {copied ? (
               <>
                 <Check className="w-4 h-4 text-green-600 animate-bounce" />
-                <span>{language === 'en' ? 'Copied!' : 'Disalin!'}</span>
+                <span>{t('link_copied')}</span>
               </>
             ) : (
               <>
                 <Share2 className="w-4 h-4 text-[#A67C1E]" />
-                <span>{language === 'en' ? 'Share Form Link' : 'Kongsi Pautan Borang'}</span>
+                <span>{t('share_link')}</span>
               </>
             )}
           </button>
@@ -548,7 +530,7 @@ export default function OrderForm() {
               <div className="flex items-center gap-2 border-b border-charcoal/10 pb-2">
                 <Building2 className="w-5 h-5 text-warm-gold" />
                 <h3 className="text-lg font-semibold text-charcoal">
-                  {language === 'en' ? 'Company / Billing Information' : 'Maklumat Syarikat / Pengebilan'}
+                  {t('billing_info')}
                 </h3>
               </div>
               
@@ -572,13 +554,13 @@ export default function OrderForm() {
                     required
                     className="w-full h-11 rounded-md border border-charcoal/20 bg-white px-3 py-2 text-base text-slate-900 focus:border-warm-gold focus:outline-none focus:ring-2 focus:ring-warm-gold/20 shadow-sm font-sans"
                   >
-                    <option value="" className="text-slate-900 bg-white">-- {language === 'en' ? 'Select Company / Organization' : 'Pilih Syarikat / Organisasi'} --</option>
+                    <option value="" className="text-slate-900 bg-white">-- {t('select_company')} --</option>
                     {SAVED_COMPANIES.map((company, idx) => (
                       <option key={idx} value={company} className="text-slate-900 bg-white">
                         {company}
                       </option>
                     ))}
-                    <option value="other" className="text-slate-900 bg-white">{language === 'en' ? 'Other (Custom entry)...' : 'Lain-lain (Kemasukan tersuai)...'}</option>
+                    <option value="other" className="text-slate-900 bg-white">{t('other_company')}</option>
                   </select>
 
                   {selectedCompany === 'other' && (
@@ -586,7 +568,7 @@ export default function OrderForm() {
                       id="to"
                       value={formData.to}
                       onChange={(e) => handleInputChange('to', e.target.value)}
-                      placeholder={language === 'en' ? "Specify Company/Organization" : "Nyatakan Syarikat/Organisasi"}
+                      placeholder={t('specify_company')}
                       required
                       className="mt-2 border-charcoal/20 bg-white text-slate-900 placeholder:text-slate-400 focus:border-warm-gold focus:ring-warm-gold/20 animate-fade-in font-sans"
                     />
@@ -601,7 +583,7 @@ export default function OrderForm() {
                     id="attn"
                     value={formData.attn}
                     onChange={(e) => handleInputChange('attn', e.target.value)}
-                    placeholder={language === 'en' ? "Department or attention to" : "Jabatan atau untuk perhatian"}
+                    placeholder={t('dept_attn')}
                     className="border-charcoal/20 bg-white text-slate-900 placeholder:text-slate-400 focus:border-warm-gold focus:ring-warm-gold/20 font-sans"
                   />
                 </div>
@@ -620,7 +602,7 @@ export default function OrderForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="menu-custom-input" className="text-charcoal/80">
-                    {language === 'en' ? 'Preferred Menu / Dishes' : 'Pilihan Menu / Hidangan'} <span className="text-red-500">*</span>
+                    {t('preferred_menu')} <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="menu-custom-input"
@@ -628,12 +610,10 @@ export default function OrderForm() {
                     onChange={(e) => handleInputChange('menu', e.target.value)}
                     required
                     className="border-charcoal/20 bg-white text-slate-900 placeholder:text-slate-400 focus:border-warm-gold focus:ring-warm-gold/20 font-sans"
-                    placeholder={language === 'en' ? 'Enter preferred menu or dishes' : 'Masukkan pilihan menu atau hidangan'}
+                    placeholder={t('enter_preferred_menu')}
                   />
                   <p className="text-[11px] text-charcoal/50 leading-relaxed italic">
-                    {language === 'en' 
-                      ? 'If you do not have specific dishes in mind, keep "Set box Makanan & Minuman".' 
-                      : 'Jika anda tiada hidangan tertentu, biarkan "Set box Makanan & Minuman".'}
+                    {t('menu_hint')}
                   </p>
                 </div>
 
@@ -650,7 +630,7 @@ export default function OrderForm() {
                       handleInputChange('quantity', val === '' ? '' : Math.max(1, parseInt(val) || 0));
                     }}
                     required
-                    placeholder={language === 'en' ? 'e.g. 50' : 'cth. 50'}
+                    placeholder={t('quantity_placeholder')}
                     className="border-charcoal/20 bg-white text-slate-900 placeholder:text-slate-400 focus:border-warm-gold focus:ring-warm-gold/20 font-sans"
                   />
                 </div>
@@ -673,7 +653,7 @@ export default function OrderForm() {
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4 text-warm-gold" />
-                          {formData.date ? format(formData.date, 'PPP') : 'Pick a date'}
+                          {formData.date ? format(formData.date, 'PPP') : t('pick_a_date')}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -698,7 +678,7 @@ export default function OrderForm() {
 
                 <div className="space-y-2">
                   <Label className="text-charcoal/80">
-                    {language === 'en' ? 'Meal For (Select all that apply)' : 'Hidangan Untuk (Pilih semua yang berkenaan)'} <span className="text-red-500">*</span>
+                    {t('meal_for')} <span className="text-red-500">*</span>
                   </Label>
                   <div className="grid grid-cols-2 gap-3 mt-1">
                     {MEAL_DROPDOWN_OPTIONS.map((mealOpt) => {
@@ -735,7 +715,7 @@ export default function OrderForm() {
                             )}
                           </div>
                           <span className="text-xs font-sans truncate">
-                            {language === 'en' ? mealOpt.labelEn : mealOpt.labelBm}
+                            {t(mealOpt.value)}
                           </span>
                         </button>
                       );
@@ -752,7 +732,7 @@ export default function OrderForm() {
                   id="location"
                   value={formData.location}
                   onChange={(e) => handleInputChange('location', e.target.value)}
-                  placeholder="Full event venue address"
+                  placeholder={t('venue_address')}
                   required
                   className="border-charcoal/20 bg-white text-slate-900 placeholder:text-slate-400 focus:border-warm-gold focus:ring-warm-gold/20 font-sans"
                 />
@@ -766,7 +746,7 @@ export default function OrderForm() {
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => handleInputChange('notes', e.target.value)}
-                  placeholder={language === 'en' ? "Any special requirements, dietary restrictions, or menu details..." : "Sebarang keperluan khas, sekatan diet, atau butiran menu..."}
+                  placeholder={t('special_reqs')}
                   rows={3}
                   className="border-charcoal/20 bg-white text-slate-900 placeholder:text-slate-400 focus:border-warm-gold focus:ring-warm-gold/20 font-sans resize-none"
                 />
@@ -778,20 +758,20 @@ export default function OrderForm() {
               <div className="flex items-center gap-2 border-b border-charcoal/10 pb-2">
                 <User className="w-5 h-5 text-warm-gold" />
                 <h3 className="text-lg font-semibold text-charcoal">
-                  {language === 'en' ? 'Contact Person Information' : 'Maklumat Orang Untuk Dihubungi (PIC)'}
+                  {t('contact_person')}
                 </h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-charcoal/80">
-                    {language === 'en' ? 'Person In Charge' : 'Orang Dipertanggungjawabkan (PIC)'} <span className="text-red-500">*</span>
+                    {t('pic_label')} <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="Full Name"
+                    placeholder={t('full_name')}
                     required
                     className="border-charcoal/20 bg-white text-slate-900 placeholder:text-slate-400 focus:border-warm-gold focus:ring-warm-gold/20 font-sans"
                   />
@@ -866,7 +846,7 @@ export default function OrderForm() {
                       {t('loading')}
                     </span>
                   ) : (
-                    language === 'en' ? 'Submit Order & Download Invoice' : 'Hantar Pesanan & Muat Turun Invois'
+                    t('submit_order_download')
                   )}
                 </Button>
 
@@ -879,18 +859,18 @@ export default function OrderForm() {
                   {copied ? (
                     <>
                       <Check className="w-5 h-5 text-green-600 animate-bounce" />
-                      <span className="text-sm">{language === 'en' ? 'Copied!' : 'Disalin!'}</span>
+                      <span className="text-sm">{t('link_copied')}</span>
                     </>
                   ) : (
                     <>
                       <Share2 className="w-5 h-5 text-[#A67C1E]" />
-                      <span className="text-sm">{language === 'en' ? 'Share Form' : 'Kongsi Borang'}</span>
+                      <span className="text-sm">{t('share_form')}</span>
                     </>
                   )}
                 </Button>
               </div>
               <p className="text-center text-xs text-charcoal/40 mt-4">
-                By submitting, you agree to our terms and conditions.
+                {t('terms_agree')}
               </p>
             </div>
           </form>
@@ -899,7 +879,7 @@ export default function OrderForm() {
         {/* Live-Updating Invoice Preview - Right Column */}
         <div className="lg:col-span-5 lg:sticky lg:top-6 space-y-4">
           <div className="bg-slate-100 p-2 rounded-lg text-center text-xs text-slate-500 font-sans font-medium uppercase tracking-wider">
-            {language === 'en' ? 'Live Document Preview (A4-Style)' : 'Pratonton Dokumen Langsung (Gaya A4)'}
+            {t('live_preview')}
           </div>
           
           <motion.div 
@@ -911,7 +891,7 @@ export default function OrderForm() {
               {/* Draft watermark */}
               <div className="absolute inset-0 flex items-center justify-center opacity-3 pointer-events-none select-none">
                 <span className="text-6xl font-black border-[12px] border-slate-900 p-6 rounded transform -rotate-12 tracking-widest">
-                  PRELIMINARY
+                  {t('draft_preliminary')}
                 </span>
               </div>
 
@@ -929,7 +909,7 @@ export default function OrderForm() {
                 <div className="text-right">
                   <h1 className="text-3xl font-black text-[#A67C1E] tracking-wider mb-1">INVOICE</h1>
                   <p className="text-[10px] text-[#1A1816]">
-                    Tarikh / Date: {new Date().toLocaleDateString(language === 'bm' ? 'ms-MY' : 'en-MY')}
+                    {t('date')}: {new Date().toLocaleDateString(language === 'bm' ? 'ms-MY' : 'en-MY')}
                   </p>
                 </div>
               </div>
@@ -938,13 +918,13 @@ export default function OrderForm() {
               <div className="grid grid-cols-2 gap-3">
                 {/* Invoice No */}
                 <div className="bg-[#FAF7F0] border border-[#C2932D] p-2.5 rounded shadow-sm">
-                  <span className="block text-[8px] font-black text-[#8C6510] uppercase mb-1">INVOICE NO.</span>
+                  <span className="block text-[8px] font-black text-[#8C6510] uppercase mb-1">{t('invoice_no_label')}</span>
                   <span className="text-[10.5px] font-bold text-[#1A1816]">RW — PENDING</span>
                 </div>
 
                 {/* Event Date */}
                 <div className="bg-[#FAF7F0] border border-[#C2932D] p-2.5 rounded shadow-sm">
-                  <span className="block text-[8px] font-black text-[#8C6510] uppercase mb-1">TARIKH ACARA / EVENT DATE</span>
+                  <span className="block text-[8px] font-black text-[#8C6510] uppercase mb-1">{t('tarikh_acara')}</span>
                   <span className="text-[10.5px] font-bold text-[#1A1816]">
                     {formData.date ? format(formData.date, 'dd/MM/yyyy') : '—'}
                   </span>
@@ -953,7 +933,7 @@ export default function OrderForm() {
 
               {/* Recipient Full Width Box */}
               <div className="bg-[#FAF7F0] border border-[#C2932D] p-2.5 rounded shadow-sm">
-                <span className="block text-[8px] font-black text-[#8C6510] uppercase mb-1">KEPADA / TO</span>
+                <span className="block text-[8px] font-black text-[#8C6510] uppercase mb-1">{t('kepada')}</span>
                 <span className="text-[10.5px] font-bold text-[#1A1816] break-words">
                   {formData.to || '—'} {formData.attn ? ` (Attn: ${formData.attn})` : ''}
                 </span>
@@ -962,16 +942,16 @@ export default function OrderForm() {
               <div className="grid grid-cols-2 gap-3">
                 {/* Event Location */}
                 <div className="bg-[#FAF7F0] border border-[#C2932D] p-2.5 rounded shadow-sm">
-                  <span className="block text-[8px] font-black text-[#8C6510] uppercase mb-1">LOKASI ACARA / EVENT LOCATION</span>
+                  <span className="block text-[8px] font-black text-[#8C6510] uppercase mb-1">{t('lokasi_acara')}</span>
                   <span className="text-[10.5px] font-bold text-[#1A1816] break-words">{formData.location || '—'}</span>
                 </div>
 
                 {/* Meal For */}
                 <div className="bg-[#FAF7F0] border border-[#C2932D] p-2.5 rounded shadow-sm">
-                  <span className="block text-[8px] font-black text-[#8C6510] uppercase mb-1">JENIS HIDANGAN / MEAL FOR</span>
+                  <span className="block text-[8px] font-black text-[#8C6510] uppercase mb-1">{t('jenis_hidangan')}</span>
                   <span className="text-[10.5px] font-bold text-[#1A1816]">
                     {formData.meals.length > 0 
-                      ? formData.meals.map(m => MEAL_DROPDOWN_OPTIONS.find(opt => opt.value === m)?.labelEn || m).join(' / ')
+                      ? formData.meals.map(m => t(m)).join(' / ')
                       : '—'}
                   </span>
                 </div>
@@ -979,7 +959,7 @@ export default function OrderForm() {
 
               {/* Quantity Full Width */}
               <div className="bg-[#FAF7F0] border border-[#C2932D] p-2 rounded shadow-sm">
-                <span className="block text-[8px] font-black text-[#8C6510] uppercase mb-1">BILANGAN PAX / QUANTITY</span>
+                <span className="block text-[8px] font-black text-[#8C6510] uppercase mb-1">{t('bilangan_pax')}</span>
                 <span className="text-[10.5px] font-bold text-[#1A1816]">{formData.quantity ? `${formData.quantity} PAX` : '—'}</span>
               </div>
 
@@ -998,16 +978,16 @@ export default function OrderForm() {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-[#604008] text-white">
-                      <th className="p-2 text-left text-[8px] font-black uppercase tracking-wider">Jenis Hidangan</th>
-                      <th className="p-2 text-center text-[8px] font-black uppercase tracking-wider w-28">Harga / Pax (RM)</th>
-                      <th className="p-2 text-right text-[8px] font-black uppercase tracking-wider w-28">Jumlah (RM)</th>
+                      <th className="p-2 text-left text-[8px] font-black uppercase tracking-wider">{t('meals')}</th>
+                      <th className="p-2 text-center text-[8px] font-black uppercase tracking-wider w-28">{t('price_pax')}</th>
+                      <th className="p-2 text-right text-[8px] font-black uppercase tracking-wider w-28">{t('amount_rm')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {formData.meals.length === 0 ? (
                       <tr className="bg-[#FAF7F0] border border-[#C2932D]">
                         <td colSpan={3} className="p-4 text-center text-slate-400 italic text-xs">
-                          {language === 'en' ? 'No meals selected' : 'Tiada hidangan dipilih'}
+                          {t('no_meals')}
                         </td>
                       </tr>
                     ) : (
@@ -1016,13 +996,13 @@ export default function OrderForm() {
                         return (
                           <tr key={mealVal} className="bg-[#FAF7F0] border border-[#C2932D]">
                             <td className="p-2 border-r border-[#C2932D] font-bold text-[10px] text-[#1A1816] uppercase">
-                              {language === 'en' ? mealOpt.labelEn : mealOpt.labelBm}
+                              {t(mealVal)}
                             </td>
                             <td className="p-2 border-r border-[#C2932D] text-center text-[10px] text-[#1A1816] font-medium italic">
-                              {language === 'en' ? 'Quote Pending' : 'Sebut Harga'}
+                              {t('quote_pending')}
                             </td>
                             <td className="p-2 text-right text-[10px] font-bold text-[#1A1816] italic">
-                              {language === 'en' ? 'Pending' : 'Sebut Harga'}
+                              {t('pending')}
                             </td>
                           </tr>
                         );
@@ -1031,7 +1011,7 @@ export default function OrderForm() {
                     {/* Grand Total Bar */}
                     <tr className="bg-[#604008] text-white">
                       <td colSpan={2} className="p-2 font-black text-[8px] uppercase tracking-wider">
-                        JUMLAH KESELURUHAN / GRAND TOTAL
+                        {t('grand_total_preview')}
                       </td>
                       <td className="p-2 text-right font-black text-[9.5px]">
                         RM —

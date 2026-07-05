@@ -4,6 +4,7 @@ import SectionLabel from '@/components/SectionLabel';
 import ReviewCard from '@/components/ReviewCard';
 import { useScrollTrigger } from '@/hooks/useScrollTrigger';
 import { useCarousel } from '@/hooks/useCarousel';
+import { useLanguage } from '@/context/LanguageContext';
 
 const REVIEWS = [
   {
@@ -34,6 +35,7 @@ const REVIEWS = [
 ];
 
 export default function ReviewsSection() {
+  const { t } = useLanguage();
   const [slidesToShow, setSlidesToShow] = useState(3);
 
   useEffect(() => {
@@ -79,10 +81,10 @@ export default function ReviewsSection() {
         {/* Header */}
         <div ref={headerRef} className="text-center mb-12">
           <div className="review-header">
-            <SectionLabel text="Testimonials" />
+            <SectionLabel text={t('testimonials')} />
           </div>
           <h2 className="review-header font-display font-semibold text-[32px] md:text-[48px] text-charcoal leading-[1.1] mb-6">
-            What Our Guests Say
+            {t('guest_reviews')}
           </h2>
           <div className="review-header flex items-center justify-center gap-3">
             <div className="flex gap-1">
@@ -90,8 +92,8 @@ export default function ReviewsSection() {
                 <Star key={i} className="w-5 h-5 text-warm-gold fill-warm-gold" />
               ))}
             </div>
-            <span className="font-body font-semibold text-lg text-charcoal">4.9 out of 5</span>
-            <span className="font-body text-sm text-warm-gray">Based on 35+ reviews</span>
+            <span className="font-body font-semibold text-lg text-charcoal">4.9 {t('out_of')}</span>
+            <span className="font-body text-sm text-warm-gray">{t('based_on')}</span>
           </div>
         </div>
 

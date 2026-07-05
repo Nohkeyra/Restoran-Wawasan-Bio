@@ -2,6 +2,7 @@ import { Sparkles, Heart, Flame, HandHeart } from 'lucide-react';
 import SectionLabel from '@/components/SectionLabel';
 import PrincipleCard from '@/components/PrincipleCard';
 import { useScrollTrigger } from '@/hooks/useScrollTrigger';
+import { useLanguage } from '@/context/LanguageContext';
 
 const PRINCIPLES = [
   {
@@ -31,6 +32,7 @@ const PRINCIPLES = [
 ];
 
 export default function ExperienceSection() {
+  const { t } = useLanguage();
   const imageRef = useScrollTrigger<HTMLDivElement>({
     animation: 'scale-up',
     duration: 1.2,
@@ -74,14 +76,13 @@ export default function ExperienceSection() {
           {/* Header */}
           <div ref={contentRef} className="text-center mb-16">
             <div className="exp-animate">
-              <SectionLabel text="The Experience" light />
+              <SectionLabel text={t('experience_title')} light />
             </div>
             <h2 className="exp-animate font-display font-semibold text-[32px] md:text-[48px] text-cream leading-[1.1] mb-6">
-              More Than a Meal
+              {t('more_than_meal')}
             </h2>
             <p className="exp-animate font-body text-lg text-cream/70 leading-relaxed max-w-[560px] mx-auto">
-              Dine with a view of Putrajaya&apos;s iconic lake and mosque. Feel the warmth of
-              nearly 40 years of tradition in every detail.
+              {t('experience_p1')}
             </p>
           </div>
 

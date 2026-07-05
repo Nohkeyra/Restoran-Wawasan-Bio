@@ -244,15 +244,27 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
       setIsDetailOpen(false);
       // Refresh the orders list to show updated status/invoice immediately
       fetchOrders();
+      
+      toast({
+        title: t('success'),
+        description: t('order_approved'),
+        variant: 'success',
+        duration: 5000
+      });
     } catch (error) {
       console.error('Error approving order:', error);
+      toast({
+        title: t('error'),
+        description: t('error_approving'),
+        variant: 'error'
+      });
     } finally {
       setIsApproving(false);
     }
   };
 
   const handleDelete = async (orderId: string) => {
-    if (!confirm('Are you sure you want to delete this order?')) return;
+    if (!confirm(t('delete_order_confirm'))) return;
     
     try {
       const response = await fetch(getApiUrl('/api/admin/orders'), {
@@ -267,12 +279,22 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
         })
       });
       if (response.ok) {
+        toast({
+          title: t('success'),
+          description: t('order_deleted'),
+          variant: 'success'
+        });
         fetchOrders();
       } else {
-        console.error('Failed to delete order via Admin API');
+        throw new Error('Failed to delete order via Admin API');
       }
     } catch (error) {
       console.error('Error deleting order:', error);
+      toast({
+        title: t('error'),
+        description: 'Failed to delete order.',
+        variant: 'error'
+      });
     }
   };
 
@@ -309,7 +331,11 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
     } catch (error: unknown) {
       console.error('Error in preview:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      window.alert('Preview Error: ' + errorMessage);
+      toast({
+        title: t('error'),
+        description: 'Preview Error: ' + errorMessage,
+        variant: 'error'
+      });
     }
   };
 
@@ -346,7 +372,11 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
       } catch (error: unknown) {
         console.error('Error in download:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
-        window.alert('Download Error: ' + errorMessage);
+        toast({
+          title: t('error'),
+          description: 'Download Error: ' + errorMessage,
+          variant: 'error'
+        });
       } finally {
         setGeneratingInvoice(null);
       }
@@ -405,10 +435,8 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
       }
 
       toast({
-        title: language === 'en' ? 'Invoice Sent!' : 'Invois Dihantar!',
-        description: language === 'en' 
-          ? `Successfully sent PDF invoice to ${recipientEmail}` 
-          : `Berjaya menghantar PDF invois ke ${recipientEmail}`,
+        title: t('invoice_emailed'),
+        description: t('invoice_emailed_desc').replace('{email}', recipientEmail),
         variant: 'success',
         duration: 4000
       });
@@ -417,8 +445,8 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
       console.error('Error sending invoice email:', err);
       const errorMessage = err instanceof Error ? err.message : String(err);
       toast({
-        title: language === 'en' ? 'Sending Failed' : 'Penghantaran Gagal',
-        description: errorMessage || (language === 'en' ? 'Failed to email invoice. Check SMTP.' : 'Gagal menghantar invois. Periksa SMTP.'),
+        title: t('sending_failed'),
+        description: errorMessage || t('sending_failed_desc'),
         variant: 'error'
       });
     } finally {
@@ -458,10 +486,8 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
     window.open(`https://wa.me/${formattedPhone}?text=${encodedText}`, '_blank');
 
     toast({
-      title: language === 'en' ? 'WhatsApp Chat Opened' : 'Sembang WhatsApp Dibuka',
-      description: language === 'en'
-        ? 'Pre-filled message loaded. You can attach the PDF copy in the chat if needed.'
-        : 'Mesej pra-isi dimuatkan. Anda boleh melampirkan salinan PDF di sembang jika perlu.',
+      title: t('whatsapp_opened'),
+      description: t('whatsapp_opened_desc'),
       variant: 'success',
       duration: 5000
     });
@@ -529,7 +555,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
             onClick={() => window.location.reload()}
           >
             <LogOut className="w-4 h-4 mr-2" />
-            Logout
+            {t('logout')}
           </Button>
         </div>
       </header>
@@ -544,7 +570,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
                 {t('orders')}
               </h1>
               <p className="text-cream/50">
-                Manage catering orders and generate invoices
+                {t('orders_subtitle')}
               </p>
             </div>
             
@@ -558,7 +584,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
           <div className="mb-6 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cream/40" />
             <Input
-              placeholder="Search by company, name, or email..."
+              placeholder={t('search_placeholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 bg-deep-brown border-warm-gold/20 text-cream placeholder:text-cream/30 focus:border-warm-gold/50"
@@ -576,7 +602,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
                     <TableHead className="text-cream/60">{t('date')}</TableHead>
                     <TableHead className="text-cream/60">{t('quantity')}</TableHead>
                     <TableHead className="text-cream/60">{t('status')}</TableHead>
-                    <TableHead className="text-cream/60 text-right">Actions</TableHead>
+                    <TableHead className="text-cream/60 text-right">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -610,7 +636,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
                             <Button
                               variant="ghost"
                               size="sm"
-                              title="View/Edit Details"
+                              title={t('view_edit_details')}
                               className="text-cream/60 hover:text-warm-gold hover:bg-warm-gold/10"
                               onClick={() => openOrderDetail(order)}
                             >
@@ -620,7 +646,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
                             <Button
                               variant="ghost"
                               size="sm"
-                              title="Preview PDF"
+                              title={t('preview_pdf')}
                               className="text-cream/60 hover:text-blue-400 hover:bg-blue-500/10"
                               onClick={() => handlePreviewPDF(order, order.status === 'approved')}
                             >
@@ -630,7 +656,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
                             <Button
                               variant="ghost"
                               size="sm"
-                              title="Download PDF"
+                              title={t('download_pdf')}
                               className="text-cream/60 hover:text-green-400 hover:bg-green-500/10"
                               onClick={() => handleDownloadPDF(order, order.status === 'approved')}
                               disabled={generatingInvoice === order.id}
@@ -645,7 +671,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
                             <Button
                               variant="ghost"
                               size="sm"
-                              title="Send PDF (Email/WhatsApp)"
+                              title={t('send_pdf')}
                               className="text-cream/60 hover:text-warm-gold hover:bg-warm-gold/10"
                               onClick={() => openSendDialog(order)}
                             >
@@ -655,7 +681,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
                             <Button
                               variant="ghost"
                               size="sm"
-                              title="Delete Order"
+                              title={t('delete_order')}
                               className="text-cream/60 hover:text-red-400 hover:bg-red-500/10"
                               onClick={() => handleDelete(order.id)}
                             >
@@ -843,7 +869,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
           <DialogHeader>
             <DialogTitle className="text-xl font-display font-bold text-warm-gold flex items-center gap-2">
               <Send className="w-5 h-5 text-warm-gold" />
-              {language === 'en' ? 'Send Invoice PDF' : 'Hantar Invois PDF'}
+              {t('send_invoice_pdf')}
             </DialogTitle>
           </DialogHeader>
 
@@ -852,17 +878,17 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
               {/* Summary Box */}
               <div className="p-4 bg-charcoal/50 rounded-xl border border-warm-gold/10 text-sm space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-cream/50">{language === 'en' ? 'Invoice No:' : 'No. Invois:'}</span>
+                  <span className="text-cream/50">{t('invoice_no_label')}</span>
                   <span className="font-mono font-medium text-cream">
                     {sendOrder.invoiceNo || `RW${sendOrder.id.substring(0, 6).toUpperCase()}`}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-cream/50">{language === 'en' ? 'Customer:' : 'Pelanggan:'}</span>
+                  <span className="text-cream/50">{t('customer_label')}</span>
                   <span className="font-medium text-cream">{sendOrder.to}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-cream/50">{language === 'en' ? 'Grand Total:' : 'Jumlah Keseluruhan:'}</span>
+                  <span className="text-cream/50">{t('grand_total_label')}</span>
                   <span className="font-bold text-warm-gold">
                     RM {(sendOrder.totalAmount || sendOrder.meals.reduce((sum, meal) => {
                       const price = sendOrder.prices?.[meal] || 0;
@@ -878,16 +904,14 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
                 <div className="p-4 rounded-xl border border-warm-gold/10 bg-charcoal/20 space-y-4">
                   <div className="flex items-center gap-2 font-semibold text-cream">
                     <Mail className="w-4 h-4 text-warm-gold" />
-                    <span>{language === 'en' ? 'Option 1: Send via Email' : 'Pilihan 1: Hantar via Emel'}</span>
+                    <span>{t('option_email')}</span>
                   </div>
                   <p className="text-xs text-cream/60">
-                    {language === 'en' 
-                      ? 'This will email the official invoice PDF attachment directly to the customer.' 
-                      : 'Ini akan menghantar lampiran PDF invois rasmi terus ke emel pelanggan.'}
+                    {t('email_desc')}
                   </p>
                   <div className="space-y-2">
                     <Label htmlFor="send-email-input" className="text-xs text-cream/50">
-                      {language === 'en' ? 'Recipient Email Address' : 'Alamat Emel Penerima'}
+                      {t('recipient_email')}
                     </Label>
                     <Input
                       id="send-email-input"
@@ -906,12 +930,12 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
                     {sendingEmail ? (
                       <span className="flex items-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        {language === 'en' ? 'Sending...' : 'Menghantar...'}
+                        {t('sending')}
                       </span>
                     ) : (
                       <span className="flex items-center gap-2 justify-center">
                         <Mail className="w-4 h-4" />
-                        {language === 'en' ? 'Send Invoice Email' : 'Hantar Emel Invois'}
+                        {t('send_invoice_email')}
                       </span>
                     )}
                   </Button>
@@ -921,16 +945,14 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
                 <div className="p-4 rounded-xl border border-warm-gold/10 bg-charcoal/20 space-y-4">
                   <div className="flex items-center gap-2 font-semibold text-cream">
                     <MessageSquare className="w-4 h-4 text-emerald-500" />
-                    <span>{language === 'en' ? 'Option 2: Share via WhatsApp' : 'Pilihan 2: Kongsi via WhatsApp'}</span>
+                    <span>{t('option_whatsapp')}</span>
                   </div>
                   <p className="text-xs text-cream/60">
-                    {language === 'en' 
-                      ? 'Opens WhatsApp with a professional pre-filled message detailing the booking and total amount.' 
-                      : 'Membuka WhatsApp dengan mesej pra-isi profesional yang memperincikan tempahan dan jumlah bayaran.'}
+                    {t('whatsapp_desc')}
                   </p>
                   <div className="space-y-2">
                     <Label htmlFor="send-phone-input" className="text-xs text-cream/50">
-                      {language === 'en' ? 'Recipient WhatsApp/Phone Number' : 'Nombor WhatsApp/Telefon Penerima'}
+                      {t('recipient_phone')}
                     </Label>
                     <Input
                       id="send-phone-input"
@@ -948,7 +970,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
                   >
                     <span className="flex items-center gap-2 justify-center">
                       <MessageSquare className="w-4 h-4" />
-                      {language === 'en' ? 'Open WhatsApp Chat' : 'Buka Sembang WhatsApp'}
+                      {t('open_whatsapp')}
                     </span>
                   </Button>
                 </div>
@@ -962,7 +984,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
               onClick={() => setIsSendDialogOpen(false)}
               className="border-warm-gold/30 text-cream hover:bg-warm-gold/10 w-full md:w-auto text-sm"
             >
-              {language === 'en' ? 'Cancel' : 'Batal'}
+              {t('cancel')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1004,7 +1026,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
               className="bg-warm-gold text-charcoal font-semibold hover:bg-[#E0BC74]"
             >
               <FileDown className="w-4 h-4 mr-2" />
-              {language === 'en' ? 'Download' : 'Muat Turun'}
+              {t('download')}
             </Button>
             <Button
               variant="outline"
@@ -1014,7 +1036,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
               }}
               className="border-warm-gold/30 text-cream hover:bg-warm-gold/10"
             >
-              {t('close') || 'Close'}
+              {t('close')}
             </Button>
           </DialogFooter>
         </DialogContent>

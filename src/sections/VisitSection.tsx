@@ -7,10 +7,10 @@ export default function VisitSection() {
   const { t, language } = useLanguage();
 
   const HOURS = [
-    { day: language === 'en' ? 'Mon — Thu' : 'Isnin — Khamis', time: language === 'en' ? '7:30 AM — 4:00 PM' : '7:30 PG — 4:00 PTG' },
-    { day: language === 'en' ? 'Friday' : 'Jumaat', time: language === 'en' ? '7:30 AM — 4:00 PM' : '7:30 PG — 4:00 PTG', note: language === 'en' ? 'Rojak Singapore available' : 'Rojak Singapore disediakan' },
-    { day: language === 'en' ? 'Saturday' : 'Sabtu', time: language === 'en' ? '7:30 AM — 4:00 PM' : '7:30 PG — 4:00 PTG' },
-    { day: language === 'en' ? 'Sunday' : 'Ahad', time: language === 'en' ? 'Closed' : 'Tutup' },
+    { day: t('mon_thu'), time: t('time_730_400') },
+    { day: t('friday'), time: t('time_730_400'), note: t('rojak_note') },
+    { day: t('saturday'), time: t('time_730_400') },
+    { day: t('sunday'), time: t('closed') },
   ];
 
   const contentRef = useScrollTrigger<HTMLDivElement>({
@@ -152,7 +152,7 @@ export default function VisitSection() {
                         C
                       </span>
                       <span className="font-body">
-                        {language === 'en' ? 'Call: ' : 'Telefon: '}
+                        {t('call_label')}{' '}
                         <strong className="text-cream group-hover:text-warm-gold transition-colors">+6017-8582642</strong> (Pak Usop)
                       </span>
                     </a>
@@ -167,7 +167,8 @@ export default function VisitSection() {
                         W
                       </span>
                       <span className="font-body">
-                        WhatsApp: <strong className="text-cream group-hover:text-warm-gold transition-colors">+6017-3157721</strong> (Mad)
+                        {t('whatsapp_label')}{' '}
+                        <strong className="text-cream group-hover:text-warm-gold transition-colors">+6017-3157721</strong> (Mad)
                       </span>
                     </a>
                   </div>

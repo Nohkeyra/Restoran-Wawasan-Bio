@@ -1,15 +1,18 @@
 import { Utensils, Facebook } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-const NAV_LINKS = [
-  { label: 'Our Story', href: '#story' },
-  { label: 'Menu', href: '#menu' },
-  { label: 'Experience', href: '#experience' },
-  { label: 'Reviews', href: '#reviews' },
-  { label: 'Visit Us', href: '#visit' },
-];
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function Footer() {
+  const { t } = useLanguage();
+  
+  const NAV_LINKS = [
+    { label: t('our_story'), href: '#story' },
+    { label: t('menu'), href: '#menu' },
+    { label: t('experience'), href: '#experience' },
+    { label: t('reviews'), href: '#reviews' },
+    { label: t('visit_us'), href: '#visit' },
+  ];
+
   return (
     <footer className="bg-charcoal border-t border-warm-gold/15 pt-16 pb-8">
       <div className="content-container">
@@ -18,11 +21,11 @@ export default function Footer() {
           <div className="text-center md:text-left">
             <div className="flex items-center gap-2 justify-center md:justify-start">
               <Utensils className="w-4 h-4 text-warm-gold" />
-              <span className="font-display font-semibold text-2xl text-cream">Restoran</span>
+              <span className="font-display font-semibold text-2xl text-cream">{t('hero_title')}</span>
             </div>
             <span className="block font-body text-sm text-cream/60 mt-1">Wawasan</span>
             <span className="block font-body text-xs text-warm-gold tracking-[0.1em] mt-2">
-              Since 1986
+              {t('hero_subtitle')}
             </span>
           </div>
 
@@ -42,7 +45,7 @@ export default function Footer() {
           {/* Social */}
           <div className="text-center md:text-right">
             <span className="font-body font-medium text-xs uppercase text-warm-gold tracking-[0.1em]">
-              Follow Us
+              {t('follow_us')}
             </span>
             <a
               href="https://www.facebook.com/Restoran-Wawasan-Pakusop-1057152710976512/"
@@ -63,14 +66,14 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
             <p className="font-body text-xs text-cream/40 text-center md:text-left">
-              &copy; {new Date().getFullYear()} Restoran Wawasan. All rights reserved.
+              &copy; {new Date().getFullYear()} Restoran Wawasan. {t('all_rights_reserved')}
             </p>
             <span className="hidden md:inline text-cream/20">|</span>
             <Link
               to="/admin"
               className="font-body text-xs text-cream/40 hover:text-warm-gold transition-colors duration-300 py-2 px-3 -mx-3 md:mx-0"
             >
-              Admin Panel
+              {t('admin_login')}
             </Link>
           </div>
           <span className="font-body font-medium text-xs text-warm-gold">

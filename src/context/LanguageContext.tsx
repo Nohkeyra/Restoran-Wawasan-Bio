@@ -146,6 +146,158 @@ const translations: Translation = {
   hours: { en: 'Opening Hours', bm: 'Waktu Buka' },
   follow_us: { en: 'Follow Us', bm: 'Ikuti Kami' },
   all_rights_reserved: { en: 'All Rights Reserved', bm: 'Hak Cipta Terpelihara' },
+  
+  // Testimonials
+  testimonials: { en: 'Testimonials', bm: 'Testimoni' },
+  guest_reviews: { en: 'What Our Guests Say', bm: 'Apa Kata Tetamu Kami' },
+  based_on: { en: 'Based on 35+ reviews', bm: 'Berdasarkan 35+ ulasan' },
+  out_of: { en: 'out of 5', bm: 'daripada 5' },
+  
+  // Experience
+  experience_title: { en: 'The Experience', bm: 'Pengalaman' },
+  more_than_meal: { en: 'More Than a Meal', bm: 'Lebih Dari Sekadar Hidangan' },
+  experience_p1: {
+    en: "Dine with a view of Putrajaya's iconic lake and mosque. Feel the warmth of nearly 40 years of tradition in every detail.",
+    bm: 'Menjamu selera dengan pemandangan tasik dan masjid ikonik Putrajaya. Rasai kehangatan tradisi hampir 40 tahun dalam setiap butiran.'
+  },
+  update_invoice: { en: 'Update Invoice', bm: 'Kemas Kini Invois' },
+  order_deleted: { en: 'Order deleted successfully', bm: 'Pesanan berjaya dipadam' },
+  order_approved: { en: 'Order approved and invoice generated', bm: 'Pesanan diluluskan dan invois dijana' },
+  error_approving: { en: 'Error approving order', bm: 'Ralat meluluskan pesanan' },
+  delete_order_confirm: { en: 'Are you sure you want to delete this order?', bm: 'Adakah anda pasti mahu memadam pesanan ini?' },
+  billing_info: { en: 'Company / Billing Information', bm: 'Maklumat Syarikat / Pengebilan' },
+  select_company: { en: 'Select Company / Organization', bm: 'Pilih Syarikat / Organisasi' },
+  other_company: { en: 'Other (Custom entry)...', bm: 'Lain-lain (Kemasukan tersuai)...' },
+  specify_company: { en: 'Specify Company/Organization', bm: 'Nyatakan Syarikat/Organisasi' },
+  dept_attn: { en: 'Department or attention to', bm: 'Jabatan atau untuk perhatian' },
+  preferred_menu: { en: 'Preferred Menu / Dishes', bm: 'Pilihan Menu / Hidangan' },
+  enter_preferred_menu: { en: 'Enter preferred menu or dishes', bm: 'Masukkan pilihan menu atau hidangan' },
+  menu_hint: { 
+    en: 'If you do not have specific dishes in mind, keep "Set box Makanan & Minuman".', 
+    bm: 'Jika anda tiada hidangan tertentu, biarkan "Set box Makanan & Minuman".' 
+  },
+  meal_for: { en: 'Meal For (Select all that apply)', bm: 'Hidangan Untuk (Pilih semua yang berkenaan)' },
+  venue_address: { en: 'Full event venue address', bm: 'Alamat lengkap lokasi majlis' },
+  special_reqs: { 
+    en: 'Any special requirements, dietary restrictions, or menu details...', 
+    bm: 'Sebarang keperluan khas, sekatan diet, atau butiran menu...' 
+  },
+  contact_person: { en: 'Contact Person Information', bm: 'Maklumat Orang Untuk Dihubungi (PIC)' },
+  pic_label: { en: 'Person In Charge', bm: 'Orang Dipertanggungjawabkan (PIC)' },
+  full_name: { en: 'Full Name', bm: 'Nama Penuh' },
+  submit_order_download: { en: 'Submit Order & Download Invoice', bm: 'Hantar Pesanan & Muat Tunun Invois' },
+  share_form: { en: 'Share Form', bm: 'Kongsi Borang' },
+  terms_agree: { en: 'By submitting, you agree to our terms and conditions.', bm: 'Dengan menghantar, anda bersetuju dengan terma dan syarat kami.' },
+  live_preview: { en: 'Live Document Preview (A4-Style)', bm: 'Pratonton Dokumen Langsung (Gaya A4)' },
+  tarikh_acara: { en: 'EVENT DATE', bm: 'TARIKH ACARA' },
+  kepada: { en: 'TO', bm: 'KEPADA' },
+  lokasi_acara: { en: 'EVENT LOCATION', bm: 'LOKASI ACARA' },
+  jenis_hidangan: { en: 'MEAL FOR', bm: 'JENIS HIDANGAN' },
+  bilangan_pax: { en: 'QUANTITY', bm: 'BILANGAN PAX' },
+  draft_preliminary: { en: 'PRELIMINARY', bm: 'AWAL' },
+  invoice_status: { en: 'Invoice & Email Status', bm: 'Status Invois & Emel' },
+  pdf_generated: { 
+    en: 'Your preliminary invoice PDF was generated and downloaded successfully!', 
+    bm: 'Invois awal PDF anda telah berjaya dijana dan dimuat turun!' 
+  },
+  sending_email: { 
+    en: 'Sending email copy to your inbox...', 
+    bm: 'Menghantar salinan emel ke peti masuk anda...' 
+  },
+  email_sent_to: { 
+    en: 'An invoice email was sent to {email}. Please check your Inbox and Spam/Junk folder!', 
+    bm: 'Satu emel invois telah dihantar ke {email}. Sila semak Inbox dan folder Spam/Junk anda!' 
+  },
+  email_failed: { 
+    en: "We couldn't send an email to {email}. Please verify SMTP settings.", 
+    bm: "Kami tidak dapat menghantar emel ke {email}. Sila sahkan tetapan SMTP." 
+  },
+  create_another: { en: 'Create Another Booking', bm: 'Buat Tempahan Baru' },
+  share_link: { en: 'Share Form Link', bm: 'Kongsi Pautan Borang' },
+  link_copied: { en: 'Link Copied!', bm: 'Pautan Disalin!' },
+  link_copied_desc: { 
+    en: 'The form link has been copied to your clipboard.', 
+    bm: 'Pautan borang telah disalin ke papan klip anda.' 
+  },
+  missing_details: { en: 'Missing Details', bm: 'Maklumat Kurang' },
+  invalid_quantity: { en: 'Invalid Quantity', bm: 'Kuantiti Tidak Sah' },
+  select_event_date: { en: 'Select Event Date', bm: 'Pilih Tarikh Majlis' },
+  missing_location: { en: 'Missing Location', bm: 'Lokasi Kurang' },
+  pic_name_required: { en: 'PIC Name Required', bm: 'Nama PIC Diperlukan' },
+  contact_required: { en: 'Contact Number Required', bm: 'Nombor Telefon Diperlukan' },
+  email_required: { en: 'Email Required', bm: 'Emel Diperlukan' },
+  email_mismatch_title: { en: 'Email Mismatch', bm: 'Emel Tidak Sepadan' },
+  invoice_emailed: { en: 'Invoice Emailed!', bm: 'Invois Dihantar!' },
+  order_submitted_title: { en: 'Order Submitted!', bm: 'Pesanan Dihantar!' },
+  order_submitted_desc: { 
+    en: 'Your booking has been received and your invoice is downloaded.', 
+    bm: 'Tempahan anda telah diterima dan invois anda telah dimuat turun.' 
+  },
+  logout: { en: 'Logout', bm: 'Log Keluar' },
+  orders_subtitle: { en: 'Manage catering orders and generate invoices', bm: 'Urus pesanan katering dan jana invois' },
+  whatsapp_opened: { en: 'WhatsApp Chat Opened', bm: 'Sembang WhatsApp Dibuka' },
+  whatsapp_opened_desc: { 
+    en: 'Pre-filled message loaded. You can attach the PDF copy in the chat if needed.', 
+    bm: 'Mesej pra-isi dimuatkan. Anda boleh melampirkan salinan PDF di sembang jika perlu.' 
+  },
+  send_invoice_pdf: { en: 'Send Invoice PDF', bm: 'Hantar Invois PDF' },
+  invoice_no_label: { en: 'Invoice No:', bm: 'No. Invois:' },
+  customer_label: { en: 'Customer:', bm: 'Pelanggan:' },
+  grand_total_label: { en: 'Grand Total:', bm: 'Jumlah Keseluruhan:' },
+  option_email: { en: 'Option 1: Send via Email', bm: 'Pilihan 1: Hantar via Emel' },
+  email_desc: { 
+    en: 'This will email the official invoice PDF attachment directly to the customer.', 
+    bm: 'Ini akan menghantar lampiran PDF invois rasmi terus ke emel pelanggan.' 
+  },
+  recipient_email: { en: 'Recipient Email Address', bm: 'Alamat Emel Penerima' },
+  sending: { en: 'Sending...', bm: 'Menghantar...' },
+  send_invoice_email: { en: 'Send Invoice Email', bm: 'Hantar Emel Invois' },
+  option_whatsapp: { en: 'Option 2: Share via WhatsApp', bm: 'Pilihan 2: Kongsi via WhatsApp' },
+  whatsapp_desc: { 
+    en: 'Opens WhatsApp with a professional pre-filled message detailing the booking and total amount.', 
+    bm: 'Membuka WhatsApp dengan mesej pra-isi profesional yang memperincikan tempahan dan jumlah bayaran.' 
+  },
+  recipient_phone: { en: 'Recipient WhatsApp/Phone Number', bm: 'Nombor WhatsApp/Telefon Penerima' },
+  open_whatsapp: { en: 'Open WhatsApp Chat', bm: 'Buka Sembang WhatsApp' },
+  cancel: { en: 'Cancel', bm: 'Batal' },
+  download: { en: 'Download', bm: 'Muat Turun' },
+  delete_order: { en: 'Delete Order', bm: 'Padam Pesanan' },
+  view_edit_details: { en: 'View/Edit Details', bm: 'Lihat/Kemas Kini Butiran' },
+  preview_pdf: { en: 'Preview PDF', bm: 'Pratonton PDF' },
+  download_pdf: { en: 'Download PDF', bm: 'Muat Turun PDF' },
+  send_pdf: { en: 'Send PDF (Email/WhatsApp)', bm: 'Hantar PDF (Emel/WhatsApp)' },
+  invoice_emailed_desc: { 
+    en: 'Successfully sent PDF invoice to {email}', 
+    bm: 'Berjaya menghantar PDF invois ke {email}' 
+  },
+  sending_failed: { en: 'Sending Failed', bm: 'Penghantaran Gagal' },
+  sending_failed_desc: { 
+    en: 'Failed to email invoice. Check SMTP.', 
+    bm: 'Gagal menghantar invois. Periksa SMTP.' 
+  },
+  other: { en: 'Other', bm: 'Lain-lain' },
+  no_meals: { en: 'No meals selected', bm: 'Tiada hidangan dipilih' },
+  mon_thu: { en: 'Mon — Thu', bm: 'Isnin — Khamis' },
+  friday: { en: 'Friday', bm: 'Jumaat' },
+  saturday: { en: 'Saturday', bm: 'Sabtu' },
+  sunday: { en: 'Sunday', bm: 'Ahad' },
+  rojak_note: { en: 'Rojak Singapore available', bm: 'Rojak Singapore disediakan' },
+  closed: { en: 'Closed', bm: 'Tutup' },
+  call_label: { en: 'Call:', bm: 'Telefon:' },
+  whatsapp_label: { en: 'WhatsApp:', bm: 'WhatsApp:' },
+  search_placeholder: { en: 'Search by company, name, or email...', bm: 'Cari mengikut syarikat, nama, atau emel...' },
+  actions: { en: 'Actions', bm: 'Tindakan' },
+  time_730_400: { en: '7:30 AM — 4:00 PM', bm: '7:30 PG — 4:00 PTG' },
+  pick_a_date: { en: 'Pick a date', bm: 'Pilih tarikh' },
+  quote_pending: { en: 'Quote Pending', bm: 'Sebut Harga' },
+  grand_total_preview: { en: 'GRAND TOTAL', bm: 'JUMLAH KESELURUHAN' },
+  price_pax: { en: 'Price / Pax (RM)', bm: 'Harga / Pax (RM)' },
+  amount_rm: { en: 'Amount (RM)', bm: 'Jumlah (RM)' },
+  breakfast: { en: 'Breakfast', bm: 'Sarapan' },
+  lunch: { en: 'Lunch', bm: 'Makan Tengah Hari' },
+  dinner: { en: 'Dinner', bm: 'Makan Malam' },
+  tea_break: { en: 'Tea Break', bm: 'Minum Petang' },
+  hi_tea: { en: 'Hi-Tea', bm: 'Hi-Tea' },
 };
 
 interface LanguageContextType {
