@@ -8,7 +8,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, CheckCircle, Loader2, Utensils, User, Building2, Share2, Check } from 'lucide-react';
 import { format } from 'date-fns';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, setDoc } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { cn } from '@/lib/utils';
 import { generateInvoicePDF } from '@/services/pdfService';
@@ -298,6 +298,7 @@ export default function OrderForm() {
       };
 
       let docRefId = '';
+      let invoiceNo = '';
       try {
         const response = await fetch(getApiUrl('/api/orders'), {
           method: 'POST',
@@ -311,12 +312,18 @@ export default function OrderForm() {
         }
         const resData = await response.json();
         docRefId = resData.id;
+        invoiceNo = resData.invoiceNo;
       } catch (err) {
         console.warn('Backend order submission failed, falling back to direct Firestore write:', err);
         const fetchErrStr = err instanceof Error ? err.message : String(err);
         try {
-          const docRef = await addDoc(collection(db, 'orders'), orderData);
+          const docRef = doc(collection(db, 'orders'));
           docRefId = docRef.id;
+          invoiceNo = `RW-PRE-${docRefId.substring(0, 6).toUpperCase()}`;
+          await setDoc(docRef, {
+            ...orderData,
+            invoiceNo
+          });
         } catch (dbErr) {
           const combinedErrorMessage = `Backend submission failed (${fetchErrStr}) and Firestore fallback failed (${dbErr instanceof Error ? dbErr.message : String(dbErr)})`;
           const customDbErr = new Error(combinedErrorMessage);
@@ -325,12 +332,11 @@ export default function OrderForm() {
         }
       }
       
-      console.log('Order submitted with ID:', docRefId);
+      console.log('Order submitted with ID:', docRefId, 'Invoice Number:', invoiceNo);
       
       // Auto-respond with Preliminary Invoice
       try {
         setEmailStatus('sending');
-        const invoiceNo = `RW${docRefId.substring(0, 6).toUpperCase()}-PRE`;
         
         // Construct the full order object expected by generateInvoicePDF
         const pdfData = {

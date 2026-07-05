@@ -138,6 +138,27 @@ function saveLocalOrders(orders: Record<string, unknown>[]) {
   }
 }
 
+// Generates sequential invoice number using Firestore transactions
+async function generateSequentialInvoiceNumber(): Promise<string> {
+  const db = getFirestore();
+  const counterRef = db.collection("meta").doc("invoiceCounter");
+
+  return await db.runTransaction(async (transaction) => {
+    const docSnap = await transaction.get(counterRef);
+    let count = 1;
+    if (docSnap.exists) {
+      const data = docSnap.data();
+      if (data && typeof data.count === "number") {
+        count = data.count + 1;
+      }
+    }
+    transaction.set(counterRef, { count });
+
+    const padded = String(count).padStart(4, "0");
+    return `RW${padded}`;
+  });
+}
+
 // Google Calendar Helper
 function getGoogleCalendarClient() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
@@ -191,8 +212,9 @@ async function syncGoogleCalendarEvent(orderId: string, passedOrderData?: OrderD
     let orderData: OrderData | undefined = passedOrderData;
     if (!orderData) {
       try {
-        const docSnap = await getDoc(doc(db, "orders", orderId));
-        if (docSnap.exists()) {
+        const adminDb = getFirestore();
+        const docSnap = await adminDb.collection("orders").doc(orderId).get();
+        if (docSnap.exists) {
           orderData = docSnap.data() as OrderData;
         }
       } catch (dbErr) {
@@ -230,16 +252,10 @@ async function syncGoogleCalendarEvent(orderId: string, passedOrderData?: OrderD
 
     const mealList = Array.isArray(orderData.meals) ? orderData.meals.join(", ") : (orderData.meals || "");
     const summary = `[${(orderData.status || "pending").toUpperCase()}] Wawasan Order - ${orderData.name || "Customer"} (${orderData.quantity || ""} Pax)`;
-    const description = `Customer: ${orderData.name || "N/A"}
-Contact: ${orderData.contact || "N/A"}
-Email: ${orderData.email || "N/A"}
-Pax (Quantity): ${orderData.quantity || "N/A"}
-Meals: ${mealList || "N/A"}
-Menu: ${orderData.menu || "N/A"}
-Location: ${orderData.location || "N/A"}
-Notes: ${orderData.notes || "N/A"}
-Status: ${orderData.status || "N/A"}
-Total Amount: ${orderData.totalAmount !== undefined ? `RM ${Number(orderData.totalAmount).toFixed(2)}` : "N/A"}`;
+    const description = `${orderData.quantity || "N/A"} Pax
+Meal For: ${mealList || "N/A"}
+Event Location: ${orderData.location || "N/A"}
+Menu: ${orderData.menu || "N/A"}`;
 
     const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
     const existingEventId = orderData.calendarEventIds?.[calendarId];
@@ -307,7 +323,8 @@ Total Amount: ${orderData.totalAmount !== undefined ? `RM ${Number(orderData.tot
 
       // Update Firestore document with calendarEventIds
       try {
-        await updateDoc(doc(db, "orders", orderId), {
+        const adminDb = getFirestore();
+        await adminDb.collection("orders").doc(orderId).update({
           calendarEventIds: updatedCalendarEventIds
         });
         console.log(`Firestore updated with calendarEventIds for order ${orderId}`);
@@ -371,17 +388,79 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
+  // Lightweight endpoint for the Android home-screen widget.
+  // Returns only the fields the widget needs (pax, meal, location, menu, date),
+  // sorted by event date ascending, limited to the nearest upcoming orders.
+  app.get("/api/widget/upcoming-orders", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt((req.query.limit as string) || "5", 10), 20);
+      const now = new Date();
+      const results: { id: string; date: string; time?: string; quantity?: number; meals?: string; location?: string; menu?: string }[] = [];
+
+      try {
+        const adminDb = getFirestore();
+        const snapshot = await adminDb.collection("orders").get();
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data() as OrderData;
+          const eventDate = d.dateTime ? new Date(d.dateTime) : (d.date ? new Date(`${d.date}T${d.time || '12:00'}:00+08:00`) : null);
+          if (eventDate && !isNaN(eventDate.getTime()) && eventDate.getTime() >= now.getTime()) {
+            results.push({
+              id: docSnap.id,
+              date: eventDate.toISOString(),
+              quantity: d.quantity,
+              meals: Array.isArray(d.meals) ? d.meals.join(", ") : d.meals,
+              location: d.location,
+              menu: d.menu,
+            });
+          }
+        });
+      } catch (dbErr) {
+        console.warn("Widget endpoint: Firestore fetch failed, falling back to local orders:", dbErr);
+        const localOrders = getLocalOrders() as unknown as (OrderData & { id: string })[];
+        localOrders.forEach((d) => {
+          const eventDate = d.dateTime ? new Date(d.dateTime) : (d.date ? new Date(`${d.date}T${d.time || '12:00'}:00+08:00`) : null);
+          if (eventDate && !isNaN(eventDate.getTime()) && eventDate.getTime() >= now.getTime()) {
+            results.push({
+              id: d.id,
+              date: eventDate.toISOString(),
+              quantity: d.quantity,
+              meals: Array.isArray(d.meals) ? d.meals.join(", ") : d.meals,
+              location: d.location,
+              menu: d.menu,
+            });
+          }
+        });
+      }
+
+      results.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      res.json({ success: true, orders: results.slice(0, limit) });
+    } catch (err) {
+      console.error("Widget endpoint error:", err);
+      res.status(500).json({ error: err instanceof Error ? err.message : "Internal server error" });
+    }
+  });
+
   // Submit order endpoint - tries Firestore first, falls back to local JSON backup
   app.post("/api/orders", async (req, res) => {
     try {
       const orderData = req.body;
       let orderId = '';
       let savedInFirestore = false;
+      let invoiceNo = '';
+
+      try {
+        invoiceNo = await generateSequentialInvoiceNumber();
+      } catch (err) {
+        console.warn("Failed to generate Firestore sequential invoice number, generating fallback:", err);
+        // Generate a fallback invoice number with timestamp & random characters
+        invoiceNo = `RW-FALLBACK-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      }
 
       try {
         const adminDb = getFirestore();
         const docRef = await runWithRetry(() => adminDb.collection("orders").add({
           ...orderData,
+          invoiceNo,
           adminPasscode: process.env.ADMIN_PASSWORD || "wawasan123",
           createdAt: admin.firestore.FieldValue.serverTimestamp()
         }));
@@ -397,13 +476,14 @@ async function startServer() {
         localOrders.push({
           id: orderId,
           ...orderData,
+          invoiceNo,
           createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 }
         });
         saveLocalOrders(localOrders);
       }
 
       // Trigger background Google Calendar event creation safely without blocking client response
-      syncGoogleCalendarEvent(orderId, orderData).catch(err => {
+      syncGoogleCalendarEvent(orderId, { ...orderData, invoiceNo }).catch(err => {
         console.error("Background Google Calendar event creation error:", err);
       });
 
@@ -412,7 +492,7 @@ async function startServer() {
         console.error("Background push notification error:", err);
       });
 
-      res.json({ success: true, id: orderId });
+      res.json({ success: true, id: orderId, invoiceNo });
     } catch (err) {
       console.error("Order submission endpoint error:", err);
       res.status(500).json({ error: err instanceof Error ? err.message : "Internal server error" });
