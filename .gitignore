@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables (contains secrets, and can override Render's dashboard env vars)
+.env
+.env.local
+.env.*.local
