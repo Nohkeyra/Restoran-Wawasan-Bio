@@ -88,34 +88,3 @@ tasks.register("printFingerprint") {
     }
 }
 
-            println "Expected path: ${keystore.absolutePath}"
-            println "Please make sure you have run the app at least once on an emulator/device,"
-            println "or generated a debug build, so that Android SDK creates the default debug.keystore."
-            println "------------------------------------------------------------"
-            return
-        }
-        
-        println "Executing keytool to fetch certificate fingerprints..."
-        exec {
-            commandLine keyTool.absolutePath, "-list", "-v", "-alias", "androiddebugkey", "-keystore", keystore.absolutePath, "-storepass", "android"
-        }
-    }
-}
-
-        if (!keystore.exists()) {
-            println "------------------------------------------------------------"
-            println "DEBUG KEYSTORE NOT FOUND"
-            println "Expected path: ${keystore.absolutePath}"
-            println "Please make sure you have run the app at least once on an emulator/device,"
-            println "or generated a debug build, so that Android SDK creates the default debug.keystore."
-            println "------------------------------------------------------------"
-            return
-        }
-        
-        println "Executing keytool to fetch certificate fingerprints..."
-        exec {
-            commandLine keyTool.absolutePath, "-list", "-v", "-alias", "androiddebugkey", "-keystore", keystore.absolutePath, "-storepass", "android"
-        }
-    }
-}
-
