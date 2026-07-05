@@ -845,7 +845,7 @@ async function startServer() {
       }
 
       await transporter.sendMail({
-        from: `"Restoran Wawasan" <${smtpUser}>`,
+        from: `"Restoran Wawasan" <${process.env.SENDER_EMAIL || 'madnor.noisy@gmail.com'}>`,
         to: customerEmail,
         subject: emailSubject,
         html: htmlBody,
@@ -1127,7 +1127,7 @@ async function startServer() {
       const pdfBuffer = Buffer.from(pdfBase64.split(',')[1] || pdfBase64, 'base64');
 
       await transporter.sendMail({
-        from: `"Restoran Wawasan" <${process.env.SMTP_USER}>`,
+        from: `"Restoran Wawasan" <${process.env.SENDER_EMAIL || 'madnor.noisy@gmail.com'}>`,
         to: email,
         subject: emailSubject,
         text: htmlBody ? undefined : emailBody,
