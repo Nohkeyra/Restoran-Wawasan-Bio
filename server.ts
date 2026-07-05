@@ -440,6 +440,28 @@ async function startServer() {
     }
   });
 
+  // TEMPORARY DEBUG ENDPOINT - lists ALL orders with no date filter, to verify
+  // Firestore actually contains test data. Remove this once debugging is done.
+  app.get("/api/widget/debug-all-orders", async (req, res) => {
+    try {
+      const results: Record<string, unknown>[] = [];
+      try {
+        const adminDb = getFirestore();
+        const snapshot = await adminDb.collection("orders").get();
+        snapshot.forEach((docSnap) => {
+          results.push({ id: docSnap.id, ...docSnap.data() });
+        });
+      } catch (dbErr) {
+        console.warn("Debug endpoint: Firestore fetch failed:", dbErr);
+      }
+      const localOrders = getLocalOrders();
+      res.json({ success: true, firestoreCount: results.length, localCount: localOrders.length, firestoreOrders: results, localOrders });
+    } catch (err) {
+      console.error("Debug endpoint error:", err);
+      res.status(500).json({ error: err instanceof Error ? err.message : "Internal server error" });
+    }
+  });
+
   // Submit order endpoint - tries Firestore first, falls back to local JSON backup
   app.post("/api/orders", async (req, res) => {
     try {
