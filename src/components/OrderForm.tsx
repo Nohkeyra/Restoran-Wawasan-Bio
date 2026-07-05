@@ -307,17 +307,20 @@ export default function OrderForm() {
           body: JSON.stringify(orderData),
         });
         if (!response.ok) {
-          throw new Error('Server submission returned non-ok status');
+          throw new Error(`Server submission failed with status code ${response.status}: ${response.statusText || 'No Status Text'}`);
         }
         const resData = await response.json();
         docRefId = resData.id;
       } catch (err) {
         console.warn('Backend order submission failed, falling back to direct Firestore write:', err);
+        const fetchErrStr = err instanceof Error ? err.message : String(err);
         try {
           const docRef = await addDoc(collection(db, 'orders'), orderData);
           docRefId = docRef.id;
         } catch (dbErr) {
-          handleFirestoreError(dbErr, OperationType.WRITE, 'orders');
+          const combinedErrorMessage = `Backend submission failed (${fetchErrStr}) and Firestore fallback failed (${dbErr instanceof Error ? dbErr.message : String(dbErr)})`;
+          const customDbErr = new Error(combinedErrorMessage);
+          handleFirestoreError(customDbErr, OperationType.WRITE, 'orders');
           return;
         }
       }
@@ -401,7 +404,25 @@ export default function OrderForm() {
       });
     } catch (error) {
       console.error('Error submitting order:', error);
-      const errMsg = t('order_error');
+      let errorDetail = '';
+      if (error instanceof Error) {
+        errorDetail = error.message;
+        // If the error message is a stringified JSON Firestore error, extract the nested error message
+        try {
+          if (errorDetail.startsWith('{') && errorDetail.endsWith('}')) {
+            const parsed = JSON.parse(errorDetail);
+            if (parsed && parsed.error) {
+              errorDetail = parsed.error;
+            }
+          }
+        } catch {
+          // Fallback to raw error message
+        }
+      } else {
+        errorDetail = String(error);
+      }
+      
+      const errMsg = `${t('order_error')}: ${errorDetail}`;
       setSubmitError(errMsg);
       toast({
         title: t('error'),

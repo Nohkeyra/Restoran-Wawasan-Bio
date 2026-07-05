@@ -7,6 +7,14 @@ export const getApiUrl = (path: string) => {
   // 2. If it's a native app, use the Android-specific URL or fallback to the general one
   if (isNative) {
     const baseUrl = import.meta.env.VITE_API_URL_ANDROID || import.meta.env.VITE_API_URL || '';
+    
+    // If no base URL is configured for native, we attempt to use the current origin 
+    // if it looks like a valid remote URL (not localhost), but for APKs we really 
+    // need a hardcoded VITE_API_URL in the environment.
+    if (!baseUrl && typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('localhost')) {
+       return `${window.location.origin}${path}`;
+    }
+
     return `${baseUrl}${path}`;
   }
 
