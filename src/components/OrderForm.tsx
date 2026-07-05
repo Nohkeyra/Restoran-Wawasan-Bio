@@ -661,7 +661,6 @@ export default function OrderForm() {
                           mode="single"
                           selected={formData.date}
                           onSelect={(date) => handleInputChange('date', date)}
-                          disabled={(date) => date < new Date()}
                           initialFocus
                         />
                       </PopoverContent>
