@@ -4,7 +4,7 @@ import { useScrollTrigger } from '@/hooks/useScrollTrigger';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function VisitSection() {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
 
   const HOURS = [
     { day: t('mon_thu'), time: t('time_730_400') },

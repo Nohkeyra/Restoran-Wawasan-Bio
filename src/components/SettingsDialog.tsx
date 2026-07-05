@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,9 @@ export default function SettingsDialog() {
       <DialogContent className="bg-deep-brown border-warm-gold/20 text-cream">
         <DialogHeader>
           <DialogTitle className="text-cream font-display">App Settings</DialogTitle>
+          <DialogDescription className="text-cream/60">
+            Customize your application preferences and developer options.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-6 py-4">
           <div className="flex items-center justify-between">

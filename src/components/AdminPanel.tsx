@@ -9,6 +9,7 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle,
+  DialogDescription,
   DialogFooter 
 } from '@/components/ui/dialog';
 import { 
@@ -79,7 +80,7 @@ const MEAL_LABELS: Record<string, { en: string; bm: string }> = {
 };
 
 export default function AdminPanel({ adminPassword }: { adminPassword?: string }) {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -706,6 +707,9 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
             <DialogTitle className="text-xl font-display">
               {t('order_details')}
             </DialogTitle>
+            <DialogDescription>
+              {t('order_details_desc')}
+            </DialogDescription>
           </DialogHeader>
 
           {selectedOrder && (
@@ -871,6 +875,9 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
               <Send className="w-5 h-5 text-warm-gold" />
               {t('send_invoice_pdf')}
             </DialogTitle>
+            <DialogDescription>
+              {t('send_invoice_desc')}
+            </DialogDescription>
           </DialogHeader>
 
           {sendOrder && (
@@ -997,6 +1004,9 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
             <DialogTitle className="text-xl font-display font-bold text-warm-gold">
               {previewFileName || 'PDF Preview'}
             </DialogTitle>
+            <DialogDescription>
+              {t('pdf_preview_desc')}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 min-h-0 bg-charcoal/50 rounded-lg overflow-hidden relative my-4 border border-warm-gold/10">

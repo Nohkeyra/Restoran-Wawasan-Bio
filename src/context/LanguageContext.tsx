@@ -298,6 +298,9 @@ const translations: Translation = {
   dinner: { en: 'Dinner', bm: 'Makan Malam' },
   tea_break: { en: 'Tea Break', bm: 'Minum Petang' },
   hi_tea: { en: 'Hi-Tea', bm: 'Hi-Tea' },
+  order_details_desc: { en: 'Review and manage order details, pricing, and status.', bm: 'Semak dan urus butiran pesanan, harga, dan status.' },
+  send_invoice_desc: { en: 'Choose how you want to send the invoice to the customer.', bm: 'Pilih cara anda mahu menghantar invois kepada pelanggan.' },
+  pdf_preview_desc: { en: 'Preview the generated invoice document.', bm: 'Pratonton dokumen invois yang dijana.' },
 };
 
 interface LanguageContextType {

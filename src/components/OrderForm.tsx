@@ -992,7 +992,6 @@ export default function OrderForm() {
                       </tr>
                     ) : (
                       formData.meals.map((mealVal) => {
-                        const mealOpt = MEAL_DROPDOWN_OPTIONS.find(m => m.value === mealVal) || MEAL_DROPDOWN_OPTIONS[0];
                         return (
                           <tr key={mealVal} className="bg-[#FAF7F0] border border-[#C2932D]">
                             <td className="p-2 border-r border-[#C2932D] font-bold text-[10px] text-[#1A1816] uppercase">
