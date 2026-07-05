@@ -29,7 +29,7 @@ const sandboxConfig = {
 
 // Determine if we are running inside the Google AI Studio workspace preview or on a native mobile device.
 // When compiled for the APK, we check both hostname and Capacitor state.
-const isNative = Capacitor.isNativePlatform();
+export const isNative = Capacitor.isNativePlatform();
 const isWorkspace = typeof window !== "undefined" && (
   window.location.hostname.endsWith(".run.app") ||
   window.location.hostname.includes("aistudio") ||
@@ -37,9 +37,9 @@ const isWorkspace = typeof window !== "undefined" && (
   (window.location.hostname === "127.0.0.1" && window.location.port === "3000")
 );
 
-// We use sandboxConfig for both workspace and native (APK) by default to ensure 
-// the mobile app connects to the same database as the preview.
-const firebaseConfig = (isWorkspace || isNative) ? sandboxConfig : prodConfig;
+// We use sandboxConfig for the workspace preview, but native (APK) and other environments
+// should always connect directly to the production project (restoran-wawasan).
+const firebaseConfig = isWorkspace ? sandboxConfig : prodConfig;
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
