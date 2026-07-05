@@ -4,21 +4,7 @@ import path from "path";
 import fs from "fs";
 import nodemailer from "nodemailer";
 import cors from "cors";
-import admin from "firebase-admin"; // Added
-import { initializeApp as initializeClientApp, getApps as getClientApps } from "firebase/app";
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { 
-  getFirestore as getClientFirestore, 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  orderBy 
-} from "firebase/firestore";
+import * as admin from "firebase-admin"; // Changed to namespace import for better compatibility
 import { google } from "googleapis";
 
 interface FirebaseConfig {
@@ -57,27 +43,42 @@ try {
   console.warn("Failed to load local firebase-applet-config.json, using default credentials:", err);
 }
 
-// Initialize Firebase SDK with apiKey authentication
-const clientApps = getClientApps();
-const clientApp = clientApps.length === 0 ? initializeClientApp(firebaseConfig) : clientApps[0];
-const db = getClientFirestore(clientApp, firebaseConfig.firestoreDatabaseId);
-
-// Authenticate server as admin to bypass restricted Firestore security rules
-const auth = getAuth(clientApp);
-const adminEmail = process.env.ADMIN_EMAIL;
-const adminPassword = process.env.ADMIN_PASSWORD;
+// Self-healing Local JSON Database Fallback
+const LOCAL_DB_PATH = path.join(process.cwd(), "orders.json");
 
 // Lazy initialize Firebase Admin
 let adminApp: admin.app.App | null = null;
 function getAdminApp() {
   if (!adminApp) {
-    if (admin.apps.length === 0) {
-      adminApp = admin.initializeApp();
+    // Safer check for apps
+    const apps = admin.apps || [];
+    if (apps.length === 0) {
+      const config = {
+        projectId: firebaseConfig.projectId,
+      };
+      adminApp = admin.initializeApp(config);
     } else {
-      adminApp = admin.apps[0]!;
+      adminApp = apps[0]!;
     }
   }
   return adminApp;
+}
+
+function getFirestore() {
+  const app = getAdminApp();
+  const dbId = firebaseConfig.firestoreDatabaseId;
+  
+  if (dbId && dbId !== "(default)") {
+    // In firebase-admin, you can get a named database via admin.firestore(app, databaseId)
+    // or by accessing the firestore service and then getting the database.
+    try {
+      return admin.firestore(app, dbId);
+    } catch (err) {
+      console.warn(`Failed to initialize Firestore with database ID ${dbId}, falling back to default:`, err);
+      return admin.firestore(app);
+    }
+  }
+  return admin.firestore(app);
 }
 
 async function sendNotificationToTopic(topic: string, title: string, body: string) {
@@ -96,35 +97,6 @@ async function sendNotificationToTopic(topic: string, title: string, body: strin
     console.error(`Error sending message to topic ${topic}:`, error);
   }
 }
-
-if (adminEmail && adminPassword) {
-  signInWithEmailAndPassword(auth, adminEmail, adminPassword)
-    .then((userCredential) => {
-      console.log(`[Firebase] Server successfully authenticated as admin user: ${userCredential.user.email}`);
-    })
-    .catch((err) => {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      const errorCode = (err as { code?: string }).code || "";
-      if (errorCode === "auth/operation-not-allowed" || errorMessage.includes("auth/operation-not-allowed") || errorMessage.includes("operation-not-allowed")) {
-        console.error(
-          `\n======================================================================\n` +
-          `[Firebase ERROR] Server failed to authenticate: auth/operation-not-allowed\n\n` +
-          `REASON: The "Email/Password" sign-in provider is disabled in your Firebase Console.\n\n` +
-          `TO FIX THIS:\n` +
-          `1. Go to your Firebase Console: https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/providers\n` +
-          `2. Under the "Sign-in method" tab, click "Add new provider" (or choose "Email/Password").\n` +
-          `3. Toggle "Enable" under the Email/Password setting and click "Save".\n` +
-          `4. Re-run or redeploy your app on Render.\n` +
-          `======================================================================\n`
-        );
-      } else {
-        console.error("[Firebase] Server failed to authenticate as admin user:", errorMessage);
-      }
-    });
-}
-
-// Self-healing Local JSON Database Fallback
-const LOCAL_DB_PATH = path.join(process.cwd(), "orders.json");
 
 // Robust Firestore operation retry mechanism to minimize reliance on the transient file system
 async function runWithRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 1000): Promise<T> {
@@ -148,7 +120,8 @@ function getLocalOrders(): Record<string, unknown>[] {
   try {
     if (fs.existsSync(LOCAL_DB_PATH)) {
       console.warn("[WARNING] Reading from local fallback file 'orders.json'. Note: This local file system is ephemeral and transient. All local changes will be lost upon container restart or redeployment.");
-      return JSON.parse(fs.readFileSync(LOCAL_DB_PATH, "utf-8")) as Record<string, unknown>[];
+      const data = JSON.parse(fs.readFileSync(LOCAL_DB_PATH, "utf-8"));
+      return Array.isArray(data) ? data : [];
     }
   } catch (err) {
     console.error("Error reading local orders database:", err);
@@ -405,9 +378,11 @@ async function startServer() {
       let savedInFirestore = false;
 
       try {
-        const docRef = await runWithRetry(() => addDoc(collection(db, "orders"), {
+        const adminDb = getFirestore();
+        const docRef = await runWithRetry(() => adminDb.collection("orders").add({
           ...orderData,
-          adminPasscode: process.env.ADMIN_PASSWORD || "wawasan123"
+          adminPasscode: process.env.ADMIN_PASSWORD || "wawasan123",
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
         }));
         orderId = docRef.id;
         savedInFirestore = true;
@@ -463,10 +438,10 @@ async function startServer() {
       let isLocal = false;
       
       try {
-        const docRef = doc(db, collectionName, submissionId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          data = docSnap.data();
+        const adminDb = getFirestore();
+        const docSnap = await adminDb.collection(collectionName).doc(submissionId).get();
+        if (docSnap.exists) {
+          data = docSnap.data() as Record<string, unknown>;
         }
       } catch (dbErr) {
         console.warn("Firestore fetch in bill failed, trying local backup:", dbErr);
@@ -494,8 +469,8 @@ async function startServer() {
 
       if (!isLocal) {
         try {
-          const docRef = doc(db, collectionName, submissionId);
-          await runWithRetry(() => updateDoc(docRef, updatedFields));
+          const adminDb = getFirestore();
+          await runWithRetry(() => adminDb.collection(collectionName).doc(submissionId).update(updatedFields));
         } catch (dbErr) {
           console.warn("Firestore update in bill failed after retries, syncing locally:", dbErr);
           isLocal = true;
@@ -1118,8 +1093,8 @@ async function startServer() {
       if (action === "fetch") {
         const orders: Record<string, unknown>[] = [];
         try {
-          const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-          const snapshot = await getDocs(q);
+          const adminDb = getFirestore();
+          const snapshot = await adminDb.collection("orders").orderBy("createdAt", "desc").get();
           snapshot.forEach((docSnap) => {
             const docData = docSnap.data();
             const createdAt = docData.createdAt as { seconds?: number; nanoseconds?: number } | null;
@@ -1164,7 +1139,8 @@ async function startServer() {
         
         let updatedInFirestore = false;
         try {
-          await runWithRetry(() => updateDoc(doc(db, "orders", orderId), data));
+          const adminDb = getFirestore();
+          await runWithRetry(() => adminDb.collection("orders").doc(orderId).update(data));
           updatedInFirestore = true;
         } catch (dbErr) {
           console.warn("Firestore update failed after retries, relying on local backup:", dbErr);
@@ -1203,7 +1179,8 @@ async function startServer() {
         }
         
         try {
-          await runWithRetry(() => deleteDoc(doc(db, "orders", orderId)));
+          const adminDb = getFirestore();
+          await runWithRetry(() => adminDb.collection("orders").doc(orderId).delete());
         } catch (dbErr) {
           console.warn("Firestore delete failed after retries, relying on local backup:", dbErr);
         }

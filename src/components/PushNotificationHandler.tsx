@@ -1,11 +1,18 @@
 import { useEffect } from 'react';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { Capacitor } from '@capacitor/core';
+import { getApiUrl } from '@/lib/api';
+
+import { useSettings } from '@/context/SettingsContext';
 
 function PushNotificationHandler() {
+  const { notificationsEnabled } = useSettings();
+
   useEffect(() => {
-    const notificationsEnabled = localStorage.getItem('notificationsEnabled') !== 'false';
-    if (!notificationsEnabled) return;
+    if (!notificationsEnabled) {
+      console.log('Push notifications are disabled in settings.');
+      return;
+    }
 
     if (!Capacitor.isNativePlatform()) {
       console.log('Push notifications not supported on web.');
@@ -32,7 +39,7 @@ function PushNotificationHandler() {
         console.info('Registration token: ', token.value);
         
         try {
-          await fetch('/api/admin/subscribe-to-topic', {
+          await fetch(getApiUrl('/api/admin/subscribe-to-topic'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: token.value, topic: 'new_orders' })
@@ -48,7 +55,7 @@ function PushNotificationHandler() {
       });
     };
     initPush();
-  }, []);
+  }, [notificationsEnabled]);
   return null;
 }
 

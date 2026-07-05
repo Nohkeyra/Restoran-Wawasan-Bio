@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { LanguageProvider } from '@/context/LanguageContext';
+import { SettingsProvider } from '@/context/SettingsContext';
 import { ToastProvider } from '@/components/ui/Toast';
+import PushNotificationHandler from '@/components/PushNotificationHandler';
 
 import LandingPage from '@/pages/LandingPage';
 import OrderPage from '@/pages/OrderPage';
@@ -59,13 +61,16 @@ function AppContent() {
 
 function App() {
   return (
-    <LanguageProvider>
-      <ToastProvider>
-        <Router>
-          <AppContent />
-        </Router>
-      </ToastProvider>
-    </LanguageProvider>
+    <SettingsProvider>
+      <LanguageProvider>
+        <ToastProvider>
+          <Router>
+            <PushNotificationHandler />
+            <AppContent />
+          </Router>
+        </ToastProvider>
+      </LanguageProvider>
+    </SettingsProvider>
   );
 }
 

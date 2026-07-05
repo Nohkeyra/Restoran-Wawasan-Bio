@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useSettings } from '@/context/SettingsContext';
 import {
   Dialog,
   DialogContent,
@@ -12,20 +12,12 @@ import { Settings } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
 export default function SettingsDialog() {
-  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
-    return localStorage.getItem('notificationsEnabled') !== 'false';
-  });
-  const [developerMode, setDeveloperMode] = useState(() => {
-    return localStorage.getItem('developerMode') === 'true';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('notificationsEnabled', String(notificationsEnabled));
-  }, [notificationsEnabled]);
-
-  useEffect(() => {
-    localStorage.setItem('developerMode', String(developerMode));
-  }, [developerMode]);
+  const { 
+    notificationsEnabled, 
+    setNotificationsEnabled, 
+    developerMode, 
+    setDeveloperMode 
+  } = useSettings();
 
   return (
     <Dialog>
