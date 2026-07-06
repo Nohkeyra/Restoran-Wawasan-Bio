@@ -201,6 +201,8 @@ async function createOrderWithSequentialInvoice(orderData: OrderData): Promise<{
 
     tx.set(orderRef, {
       ...orderData,
+      status: "approved",
+      approvedAt: new Date().toISOString(),
       invoiceNo,
       eventTimestamp,
       // Always set by server (client may send a Firestore sentinel that isn't valid server-side)
@@ -626,6 +628,8 @@ async function startServer() {
           localOrders.push({
             id: orderId,
             ...orderData,
+            status: "approved",
+            approvedAt: new Date().toISOString(),
             invoiceNo,
             createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
           });

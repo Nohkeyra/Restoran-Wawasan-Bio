@@ -252,7 +252,8 @@ export default function OrderForm() {
         notes: formData.notes,
         dateTime: new Date(`${formattedDateStr}T${formData.time || '12:00'}`).toISOString(),
         lang: language,
-        status: 'pending',
+        status: 'approved',
+        approvedAt: new Date().toISOString(),
         prices: initialPrices,
         totalAmount: 0,
       };
@@ -870,7 +871,7 @@ export default function OrderForm() {
                   <p className="text-[10px] text-slate-600 leading-tight">
                     Unit 3, Level B3, Menara PjH<br />
                     Jalan P2a, Presint 2, 62100 Putrajaya<br />
-                    Est. 1996
+                    Est. 1986
                   </p>
                 </div>
                 <div className="text-right">
@@ -1026,7 +1027,7 @@ export default function OrderForm() {
 
               {/* Page 1 Bottom Footer Line */}
               <div className="border-t border-[#C2932D] pt-2 text-center text-[8px] text-slate-500 font-medium">
-                Restoran Wawasan | Unit 3, Level B3, Menara PjH, Putrajaya | Est. 1996
+                Restoran Wawasan | Unit 3, Level B3, Menara PjH, Putrajaya | Est. 1986
               </div>
             </div>
 

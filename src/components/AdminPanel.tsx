@@ -140,9 +140,9 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
   };
 
   const getCalendarEnableUrl = () => {
-    if (!calendarState.error) return 'https://console.developers.google.com/apis/api/calendar-json.googleapis.com/overview?project=1019707766959';
+    if (!calendarState.error) return 'https://console.developers.google.com/apis/api/calendar-json.googleapis.com/overview?project=restoran-wawasan';
     const match = calendarState.error.match(/(https:\/\/console\S+)/);
-    return match ? match[1] : 'https://console.developers.google.com/apis/api/calendar-json.googleapis.com/overview?project=1019707766959';
+    return match ? match[1] : 'https://console.developers.google.com/apis/api/calendar-json.googleapis.com/overview?project=restoran-wawasan';
   };
 
   const fetchOrders = async () => {
