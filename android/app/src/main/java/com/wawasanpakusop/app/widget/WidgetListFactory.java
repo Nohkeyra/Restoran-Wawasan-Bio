@@ -133,11 +133,6 @@ public class WidgetListFactory implements RemoteViewsService.RemoteViewsFactory 
     }
 
     @Override
-    public int getItemViewType(int position) {
-        return rows.get(position).type;
-    }
-
-    @Override
     public long getItemId(int position) {
         return position;
     }
