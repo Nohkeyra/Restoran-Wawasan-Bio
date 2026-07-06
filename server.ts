@@ -5,7 +5,9 @@ import fs from "fs";
 import nodemailer from "nodemailer";
 import cors from "cors";
 import * as admin from "firebase-admin"; // Changed to namespace import for better compatibility
-import { cert } from "firebase-admin/app";
+import { cert, App } from "firebase-admin/app";
+import { getFirestore as getFirestoreModular, Timestamp, FieldValue } from "firebase-admin/firestore";
+import { getMessaging } from "firebase-admin/messaging";
 import { google } from "googleapis";
 
 interface FirebaseConfig {
@@ -44,7 +46,7 @@ const ENABLE_LOCAL_FALLBACK = process.env.ENABLE_LOCAL_FALLBACK === "true";
 const STRICT_FIREBASE_ADMIN = process.env.STRICT_FIREBASE_ADMIN !== "false";
 
 // Lazy initialize Firebase Admin
-let adminApp: admin.app.App | null = null;
+let adminApp: App | null = null;
 function getAdminApp() {
   if (!adminApp) {
     const apps = admin.apps || [];
@@ -88,16 +90,16 @@ function getFirestore() {
   const dbId = firebaseConfig.firestoreDatabaseId;
   
   if (dbId && dbId !== "(default)") {
-    // In firebase-admin, you can get a named database via admin.firestore(app, databaseId)
-    // or by accessing the firestore service and then getting the database.
+    // In the modular API, a named database is passed as the second argument
+    // to getFirestore(app, databaseId).
     try {
-      return admin.firestore(app, dbId);
+      return getFirestoreModular(app, dbId);
     } catch (err) {
       console.warn(`Failed to initialize Firestore with database ID ${dbId}, falling back to default:`, err);
-      return admin.firestore(app);
+      return getFirestoreModular(app);
     }
   }
-  return admin.firestore(app);
+  return getFirestoreModular(app);
 }
 
 async function sendNotificationToTopic(topic: string, title: string, body: string) {
@@ -110,7 +112,7 @@ async function sendNotificationToTopic(topic: string, title: string, body: strin
       },
       topic: topic,
     };
-    const response = await admin.messaging(app).send(message);
+    const response = await getMessaging(app).send(message);
     console.log(`Successfully sent message to topic ${topic}:`, response);
   } catch (error) {
     console.error(`Error sending message to topic ${topic}:`, error);
@@ -159,7 +161,7 @@ function saveLocalOrders(orders: Record<string, unknown>[]) {
   }
 }
 
-function toEventTimestamp(orderData: Partial<OrderData>): admin.firestore.Timestamp | null {
+function toEventTimestamp(orderData: Partial<OrderData>): Timestamp | null {
   try {
     const raw = orderData.dateTime
       ? new Date(orderData.dateTime)
@@ -167,7 +169,7 @@ function toEventTimestamp(orderData: Partial<OrderData>): admin.firestore.Timest
         ? new Date(`${orderData.date}T${orderData.time || "12:00"}:00+08:00`)
         : null;
     if (!raw || isNaN(raw.getTime())) return null;
-    return admin.firestore.Timestamp.fromDate(raw);
+    return Timestamp.fromDate(raw);
   } catch {
     return null;
   }
@@ -193,7 +195,7 @@ async function createOrderWithSequentialInvoice(orderData: OrderData): Promise<{
 
     tx.set(
       counterRef,
-      { count: next, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+      { count: next, updatedAt: FieldValue.serverTimestamp() },
       { merge: true }
     );
 
@@ -202,7 +204,7 @@ async function createOrderWithSequentialInvoice(orderData: OrderData): Promise<{
       invoiceNo,
       eventTimestamp,
       // Always set by server (client may send a Firestore sentinel that isn't valid server-side)
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
       // Used by the admin endpoints; never trust client
       adminPasscode: process.env.ADMIN_PASSWORD || "wawasan123",
     });
@@ -250,6 +252,7 @@ interface OrderData {
   notes?: string;
   status?: string;
   totalAmount?: number;
+  invoiceNo?: string;
   calendarEventIds?: Record<string, string>;
 }
 
@@ -453,7 +456,7 @@ async function startServer() {
           ref,
           {
             count: prev + 1,
-            lastRunAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastRunAt: FieldValue.serverTimestamp(),
           },
           { merge: true }
         );
@@ -503,7 +506,7 @@ async function startServer() {
         const adminDb = getFirestore();
         // Prefer querying by a Firestore Timestamp field (fast, index-friendly).
         // New orders created by the backend set `eventTimestamp`.
-        const nowTs = admin.firestore.Timestamp.fromDate(now);
+        const nowTs = Timestamp.fromDate(now);
         const snapshot = await adminDb
           .collection("orders")
           .where("eventTimestamp", ">=", nowTs)
@@ -512,7 +515,7 @@ async function startServer() {
           .get();
 
         snapshot.forEach((docSnap) => {
-          const d = docSnap.data() as OrderData & { eventTimestamp?: admin.firestore.Timestamp };
+          const d = docSnap.data() as OrderData & { eventTimestamp?: Timestamp };
           const eventDate =
             d.eventTimestamp?.toDate?.() ||
             (d.dateTime ? new Date(d.dateTime) : d.date ? new Date(`${d.date}T${d.time || "12:00"}:00+08:00`) : null);
@@ -1303,7 +1306,7 @@ async function startServer() {
       }
       
       const app = getAdminApp();
-      await admin.messaging(app).subscribeToTopic(token, topic);
+      await getMessaging(app).subscribeToTopic(token, topic);
       console.log(`Successfully subscribed token to topic ${topic}`);
       res.json({ success: true });
     } catch (err) {
