@@ -25,6 +25,8 @@ import {
   LogOut, 
   FileText, 
   CheckCircle, 
+  AlertTriangle,
+  XCircle,
   Trash2, 
   Eye,
   Loader2,
@@ -103,6 +105,46 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
   const [recipientPhone, setRecipientPhone] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
 
+  const [calendarState, setCalendarState] = useState<{
+    ok: boolean;
+    error?: string;
+    loading: boolean;
+  }>({ ok: false, loading: true });
+
+  const fetchCalendarState = async () => {
+    try {
+      const response = await fetch(getApiUrl('/api/diagnostics/calendar'));
+      if (response.ok) {
+        const data = await response.json();
+        setCalendarState({
+          ok: data.ok,
+          error: data.message,
+          loading: false
+        });
+      } else {
+        const data = await response.json();
+        setCalendarState({
+          ok: false,
+          error: data.message || data.error || 'Failed to authenticate',
+          loading: false
+        });
+      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to connect to server';
+      setCalendarState({
+        ok: false,
+        error: errorMsg,
+        loading: false
+      });
+    }
+  };
+
+  const getCalendarEnableUrl = () => {
+    if (!calendarState.error) return 'https://console.developers.google.com/apis/api/calendar-json.googleapis.com/overview?project=1019707766959';
+    const match = calendarState.error.match(/(https:\/\/console\S+)/);
+    return match ? match[1] : 'https://console.developers.google.com/apis/api/calendar-json.googleapis.com/overview?project=1019707766959';
+  };
+
   const fetchOrders = async () => {
     try {
       const response = await fetch(getApiUrl('/api/admin/orders'), {
@@ -137,6 +179,7 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
   // Fetch orders on load
   useEffect(() => {
     fetchOrders();
+    fetchCalendarState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminPassword]);
 
@@ -575,10 +618,37 @@ export default function AdminPanel({ adminPassword }: { adminPassword?: string }
               </p>
             </div>
             
-            <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-400 border border-green-500/20 rounded-md">
-              <CheckCircle className="w-4 h-4" />
-              <span className="text-sm font-medium">Calendar Auto-Synced</span>
-            </div>
+            {calendarState.loading ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-cream/5 text-cream/50 border border-cream/10 rounded-md">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm font-medium">Checking Calendar Sync...</span>
+              </div>
+            ) : calendarState.ok ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-400 border border-green-500/20 rounded-md" title="Google Calendar Sync is fully operational.">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">Calendar Auto-Synced</span>
+              </div>
+            ) : calendarState.error && (calendarState.error.includes('disabled') || calendarState.error.includes('not been used')) ? (
+              <div className="flex flex-col items-end gap-1.5">
+                <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md" title="Google Calendar API must be enabled.">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span className="text-sm font-medium">Calendar API Disabled</span>
+                </div>
+                <a 
+                  href={getCalendarEnableUrl()} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-amber-400 hover:text-amber-300 underline transition-colors"
+                >
+                  Click here to enable Google Calendar API
+                </a>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md" title={calendarState.error || "Calendar is not fully synced."}>
+                <XCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">Calendar Sync Offline</span>
+              </div>
+            )}
           </div>
 
           {/* Search */}
