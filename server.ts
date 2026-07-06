@@ -44,13 +44,29 @@ const LOCAL_DB_PATH = path.join(process.cwd(), "orders.json");
 let adminApp: admin.app.App | null = null;
 function getAdminApp() {
   if (!adminApp) {
-    // Safer check for apps
     const apps = admin.apps || [];
     if (apps.length === 0) {
-      const config = {
-        projectId: firebaseConfig.projectId,
-      };
-      adminApp = admin.initializeApp(config);
+      const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+      const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+        ? process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY.replace(/\\n/g, "\n")
+        : undefined;
+
+      if (email && privateKey) {
+        // Render has no Application Default Credentials (that's a GCP-only
+        // mechanism), so Firebase Admin must be given an explicit service
+        // account credential or every Firestore call silently fails auth.
+        adminApp = admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId: firebaseConfig.projectId,
+            clientEmail: email,
+            privateKey: privateKey,
+          }),
+          projectId: firebaseConfig.projectId,
+        });
+      } else {
+        console.warn("GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY not set — Firebase Admin will attempt Application Default Credentials, which do not exist on Render and will likely fail.");
+        adminApp = admin.initializeApp({ projectId: firebaseConfig.projectId });
+      }
     } else {
       adminApp = apps[0]!;
     }
