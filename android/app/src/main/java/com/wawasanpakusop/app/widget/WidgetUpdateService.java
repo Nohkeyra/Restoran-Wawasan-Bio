@@ -1,5 +1,6 @@
 package com.wawasanpakusop.app.widget;
 
+import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
@@ -8,6 +9,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.widget.RemoteViews;
 
+import com.wawasanpakusop.app.MainActivity;
 import com.wawasanpakusop.app.R;
 
 import org.json.JSONObject;
@@ -86,11 +88,30 @@ public class WidgetUpdateService {
         for (int appWidgetId : appWidgetIds) {
             RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_upcoming_orders);
 
+            Intent openIntent = new Intent(context, MainActivity.class);
+            openIntent.putExtra("open_admin_panel", true);
+            openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent openPendingIntent = PendingIntent.getActivity(
+                context, 0, openIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            views.setOnClickPendingIntent(R.id.widget_title, openPendingIntent);
+            views.setOnClickPendingIntent(R.id.widget_empty_view, openPendingIntent);
+
             Intent listIntent = new Intent(context, WidgetRemoteViewsService.class);
             listIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
             listIntent.setData(android.net.Uri.parse(listIntent.toUri(Intent.URI_INTENT_SCHEME)));
             views.setRemoteAdapter(R.id.widget_orders_list, listIntent);
             views.setEmptyView(R.id.widget_orders_list, R.id.widget_empty_view);
+
+            // Each row in the list supplies its own "fill-in" intent (set in
+            // WidgetListFactory) with the specific order's data; this template
+            // is what makes that click actually launch the app.
+            Intent rowClickIntent = new Intent(context, MainActivity.class);
+            rowClickIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent rowClickTemplate = PendingIntent.getActivity(
+                context, 0, rowClickIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE
+            );
+            views.setPendingIntentTemplate(R.id.widget_orders_list, rowClickTemplate);
 
             if (!hasData) {
                 views.setTextViewText(
