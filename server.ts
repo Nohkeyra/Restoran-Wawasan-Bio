@@ -5,6 +5,7 @@ import fs from "fs";
 import nodemailer from "nodemailer";
 import cors from "cors";
 import * as admin from "firebase-admin"; // Changed to namespace import for better compatibility
+import { cert } from "firebase-admin/app";
 import { google } from "googleapis";
 
 interface FirebaseConfig {
@@ -56,7 +57,7 @@ function getAdminApp() {
         // mechanism), so Firebase Admin must be given an explicit service
         // account credential or every Firestore call silently fails auth.
         adminApp = admin.initializeApp({
-          credential: admin.credential.cert({
+          credential: cert({
             projectId: firebaseConfig.projectId,
             clientEmail: email,
             privateKey: privateKey,
