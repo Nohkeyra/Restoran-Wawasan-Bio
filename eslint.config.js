@@ -19,5 +19,10 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // This rule flags common async data-loading patterns (fetch -> setState) as an error.
+      // We keep hooks rules enabled, but allow state updates inside effects.
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])

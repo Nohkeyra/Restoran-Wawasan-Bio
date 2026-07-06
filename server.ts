@@ -40,6 +40,8 @@ const firebaseConfig: FirebaseConfig = {
 
 // Self-healing Local JSON Database Fallback
 const LOCAL_DB_PATH = path.join(process.cwd(), "orders.json");
+const ENABLE_LOCAL_FALLBACK = process.env.ENABLE_LOCAL_FALLBACK === "true";
+const STRICT_FIREBASE_ADMIN = process.env.STRICT_FIREBASE_ADMIN !== "false";
 
 // Lazy initialize Firebase Admin
 let adminApp: admin.app.App | null = null;
@@ -65,7 +67,13 @@ function getAdminApp() {
           projectId: firebaseConfig.projectId,
         });
       } else {
-        console.warn("GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY not set — Firebase Admin will attempt Application Default Credentials, which do not exist on Render and will likely fail.");
+        const msg =
+          "Missing GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY. " +
+          "On Render this usually means Firebase Admin cannot authenticate to Firestore, so orders/invoice counters/widgets will fail.";
+        if (STRICT_FIREBASE_ADMIN) {
+          throw new Error(msg);
+        }
+        console.warn(msg + " Continuing with Application Default Credentials (not recommended on Render).");
         adminApp = admin.initializeApp({ projectId: firebaseConfig.projectId });
       }
     } else {
@@ -128,6 +136,7 @@ async function runWithRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 1000
 }
 
 function getLocalOrders(): Record<string, unknown>[] {
+  if (!ENABLE_LOCAL_FALLBACK) return [];
   try {
     if (fs.existsSync(LOCAL_DB_PATH)) {
       console.warn("[WARNING] Reading from local fallback file 'orders.json'. Note: This local file system is ephemeral and transient. All local changes will be lost upon container restart or redeployment.");
@@ -141,6 +150,7 @@ function getLocalOrders(): Record<string, unknown>[] {
 }
 
 function saveLocalOrders(orders: Record<string, unknown>[]) {
+  if (!ENABLE_LOCAL_FALLBACK) return;
   try {
     console.warn("[WARNING] Writing to local fallback file 'orders.json'. Note: This local file system is ephemeral and transient. All local changes will be lost upon container restart or redeployment.");
     fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(orders, null, 2), "utf-8");
@@ -149,24 +159,55 @@ function saveLocalOrders(orders: Record<string, unknown>[]) {
   }
 }
 
-// Generates sequential invoice number using Firestore transactions
-async function generateSequentialInvoiceNumber(): Promise<string> {
+function toEventTimestamp(orderData: Partial<OrderData>): admin.firestore.Timestamp | null {
+  try {
+    const raw = orderData.dateTime
+      ? new Date(orderData.dateTime)
+      : orderData.date
+        ? new Date(`${orderData.date}T${orderData.time || "12:00"}:00+08:00`)
+        : null;
+    if (!raw || isNaN(raw.getTime())) return null;
+    return admin.firestore.Timestamp.fromDate(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function createOrderWithSequentialInvoice(orderData: OrderData): Promise<{ orderId: string; invoiceNo: string }> {
   const db = getFirestore();
   const counterRef = db.collection("meta").doc("invoiceCounter");
+  const orderRef = db.collection("orders").doc();
 
-  return await db.runTransaction(async (transaction) => {
-    const docSnap = await transaction.get(counterRef);
-    let count = 1;
-    if (docSnap.exists) {
-      const data = docSnap.data();
+  return await db.runTransaction(async (tx) => {
+    const counterSnap = await tx.get(counterRef);
+    let next = 1;
+    if (counterSnap.exists) {
+      const data = counterSnap.data();
       if (data && typeof data.count === "number") {
-        count = data.count + 1;
+        next = data.count + 1;
       }
     }
-    transaction.set(counterRef, { count });
 
-    const padded = String(count).padStart(4, "0");
-    return `RW${padded}`;
+    const invoiceNo = `RW${String(next).padStart(4, "0")}`;
+    const eventTimestamp = toEventTimestamp(orderData);
+
+    tx.set(
+      counterRef,
+      { count: next, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+
+    tx.set(orderRef, {
+      ...orderData,
+      invoiceNo,
+      eventTimestamp,
+      // Always set by server (client may send a Firestore sentinel that isn't valid server-side)
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      // Used by the admin endpoints; never trust client
+      adminPasscode: process.env.ADMIN_PASSWORD || "wawasan123",
+    });
+
+    return { orderId: orderRef.id, invoiceNo };
   });
 }
 
@@ -399,6 +440,56 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
+  // Diagnostics endpoint: verifies Firebase Admin can authenticate and write to Firestore.
+  // This creates/updates a harmless doc `meta/diagnostics`.
+  app.get("/api/diagnostics/firebase", async (req, res) => {
+    try {
+      const db = getFirestore();
+      const ref = db.collection("meta").doc("diagnostics");
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const prev = (snap.data() as { count?: number } | undefined)?.count || 0;
+        tx.set(
+          ref,
+          {
+            count: prev + 1,
+            lastRunAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+      });
+      res.json({ ok: true, projectId: firebaseConfig.projectId });
+    } catch (err) {
+      console.error("Firebase diagnostics failed:", err);
+      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  // Diagnostics endpoint: verifies Google Calendar API auth + API enablement.
+  app.get("/api/diagnostics/calendar", async (req, res) => {
+    try {
+      const calendar = getGoogleCalendarClient();
+      if (!calendar) {
+        return res.status(500).json({
+          ok: false,
+          error: "Google Calendar client not configured (missing GOOGLE_SERVICE_ACCOUNT_EMAIL/PRIVATE_KEY).",
+        });
+      }
+
+      // A lightweight call that will surface 403 PERMISSION_DENIED if the API is disabled.
+      const r = await calendar.calendarList.list({ maxResults: 1 });
+      res.json({ ok: true, calendarsReturned: (r.data.items || []).length });
+    } catch (err) {
+      const e = err as { code?: number; status?: number; message?: string; errors?: unknown };
+      console.error("Calendar diagnostics failed:", err);
+      res.status(500).json({
+        ok: false,
+        status: e?.status ?? e?.code,
+        message: e?.message || "Calendar diagnostics failed",
+      });
+    }
+  });
+
   // Lightweight endpoint for the Android home-screen widget.
   // Returns only the fields the widget needs (pax, meal, location, menu, date),
   // sorted by event date ascending, limited to the nearest upcoming orders.
@@ -410,10 +501,21 @@ async function startServer() {
 
       try {
         const adminDb = getFirestore();
-        const snapshot = await adminDb.collection("orders").get();
+        // Prefer querying by a Firestore Timestamp field (fast, index-friendly).
+        // New orders created by the backend set `eventTimestamp`.
+        const nowTs = admin.firestore.Timestamp.fromDate(now);
+        const snapshot = await adminDb
+          .collection("orders")
+          .where("eventTimestamp", ">=", nowTs)
+          .orderBy("eventTimestamp", "asc")
+          .limit(limit)
+          .get();
+
         snapshot.forEach((docSnap) => {
-          const d = docSnap.data() as OrderData;
-          const eventDate = d.dateTime ? new Date(d.dateTime) : (d.date ? new Date(`${d.date}T${d.time || '12:00'}:00+08:00`) : null);
+          const d = docSnap.data() as OrderData & { eventTimestamp?: admin.firestore.Timestamp };
+          const eventDate =
+            d.eventTimestamp?.toDate?.() ||
+            (d.dateTime ? new Date(d.dateTime) : d.date ? new Date(`${d.date}T${d.time || "12:00"}:00+08:00`) : null);
           if (eventDate && !isNaN(eventDate.getTime()) && eventDate.getTime() >= now.getTime()) {
             results.push({
               id: docSnap.id,
@@ -425,6 +527,29 @@ async function startServer() {
             });
           }
         });
+
+        // Backward compatibility for older orders that do not have `eventTimestamp`.
+        if (results.length === 0) {
+          const legacySnap = await adminDb.collection("orders").get();
+          legacySnap.forEach((docSnap) => {
+            const d = docSnap.data() as OrderData;
+            const eventDate = d.dateTime
+              ? new Date(d.dateTime)
+              : d.date
+                ? new Date(`${d.date}T${d.time || "12:00"}:00+08:00`)
+                : null;
+            if (eventDate && !isNaN(eventDate.getTime()) && eventDate.getTime() >= now.getTime()) {
+              results.push({
+                id: docSnap.id,
+                date: eventDate.toISOString(),
+                quantity: d.quantity,
+                meals: Array.isArray(d.meals) ? d.meals.join(", ") : d.meals,
+                location: d.location,
+                menu: d.menu,
+              });
+            }
+          });
+        }
       } catch (dbErr) {
         console.warn("Widget endpoint: Firestore fetch failed, falling back to local orders:", dbErr);
         const localOrders = getLocalOrders() as unknown as (OrderData & { id: string })[];
@@ -453,66 +578,58 @@ async function startServer() {
 
   // TEMPORARY DEBUG ENDPOINT - lists ALL orders with no date filter, to verify
   // Firestore actually contains test data. Remove this once debugging is done.
-  app.get("/api/widget/debug-all-orders", async (req, res) => {
-    try {
-      const results: Record<string, unknown>[] = [];
+  if (process.env.ENABLE_DEBUG_ENDPOINTS === "true") {
+    app.get("/api/widget/debug-all-orders", async (req, res) => {
       try {
-        const adminDb = getFirestore();
-        const snapshot = await adminDb.collection("orders").get();
-        snapshot.forEach((docSnap) => {
-          results.push({ id: docSnap.id, ...docSnap.data() });
-        });
-      } catch (dbErr) {
-        console.warn("Debug endpoint: Firestore fetch failed:", dbErr);
+        const results: Record<string, unknown>[] = [];
+        try {
+          const adminDb = getFirestore();
+          const snapshot = await adminDb.collection("orders").get();
+          snapshot.forEach((docSnap) => {
+            results.push({ id: docSnap.id, ...docSnap.data() });
+          });
+        } catch (dbErr) {
+          console.warn("Debug endpoint: Firestore fetch failed:", dbErr);
+        }
+        const localOrders = getLocalOrders();
+        res.json({ success: true, firestoreCount: results.length, localCount: localOrders.length, firestoreOrders: results, localOrders });
+      } catch (err) {
+        console.error("Debug endpoint error:", err);
+        res.status(500).json({ error: err instanceof Error ? err.message : "Internal server error" });
       }
-      const localOrders = getLocalOrders();
-      res.json({ success: true, firestoreCount: results.length, localCount: localOrders.length, firestoreOrders: results, localOrders });
-    } catch (err) {
-      console.error("Debug endpoint error:", err);
-      res.status(500).json({ error: err instanceof Error ? err.message : "Internal server error" });
-    }
-  });
+    });
+  }
 
   // Submit order endpoint - tries Firestore first, falls back to local JSON backup
   app.post("/api/orders", async (req, res) => {
     try {
-      const orderData = req.body;
-      let orderId = '';
-      let savedInFirestore = false;
-      let invoiceNo = '';
+      const orderData = req.body as OrderData;
 
+      // IMPORTANT: Do not silently fall back to client-side Firestore writes in production.
+      // This endpoint is the single source of truth for:
+      // 1) sequential invoice numbers, 2) correct Firestore project, 3) widget pipeline.
+      let orderId = "";
+      let invoiceNo = "";
       try {
-        invoiceNo = await generateSequentialInvoiceNumber();
-      } catch (err) {
-        console.warn("Failed to generate Firestore sequential invoice number, generating fallback:", err);
-        // Generate a fallback invoice number with timestamp & random characters
-        invoiceNo = `RW-FALLBACK-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-      }
-
-      try {
-        const adminDb = getFirestore();
-        const docRef = await runWithRetry(() => adminDb.collection("orders").add({
-          ...orderData,
-          invoiceNo,
-          adminPasscode: process.env.ADMIN_PASSWORD || "wawasan123",
-          createdAt: admin.firestore.FieldValue.serverTimestamp()
-        }));
-        orderId = docRef.id;
-        savedInFirestore = true;
-      } catch (dbErr) {
-        console.warn("Firestore order submission failed after retries, saving locally:", dbErr);
-      }
-
-      if (!savedInFirestore) {
-        orderId = "order_" + Math.random().toString(36).substring(2, 10);
-        const localOrders = getLocalOrders();
-        localOrders.push({
-          id: orderId,
-          ...orderData,
-          invoiceNo,
-          createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 }
-        });
-        saveLocalOrders(localOrders);
+        const created = await runWithRetry(() => createOrderWithSequentialInvoice(orderData));
+        orderId = created.orderId;
+        invoiceNo = created.invoiceNo;
+      } catch (firestoreErr) {
+        if (ENABLE_LOCAL_FALLBACK) {
+          console.warn("Firestore order submission failed; ENABLE_LOCAL_FALLBACK=true so saving locally:", firestoreErr);
+          orderId = "order_" + Math.random().toString(36).substring(2, 10);
+          invoiceNo = `RW-FALLBACK-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+          const localOrders = getLocalOrders();
+          localOrders.push({
+            id: orderId,
+            ...orderData,
+            invoiceNo,
+            createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+          });
+          saveLocalOrders(localOrders);
+        } else {
+          throw firestoreErr;
+        }
       }
 
       // Trigger background Google Calendar event creation safely without blocking client response
@@ -528,7 +645,7 @@ async function startServer() {
       res.json({ success: true, id: orderId, invoiceNo });
     } catch (err) {
       console.error("Order submission endpoint error:", err);
-      res.status(500).json({ error: err instanceof Error ? err.message : "Internal server error" });
+      res.status(500).json({ success: false, error: err instanceof Error ? err.message : "Internal server error" });
     }
   });
 

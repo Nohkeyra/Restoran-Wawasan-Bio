@@ -8,8 +8,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, CheckCircle, Loader2, Utensils, User, Building2, Share2, Check } from 'lucide-react';
 import { format } from 'date-fns';
-import { collection, serverTimestamp, doc, setDoc } from 'firebase/firestore';
-import { db } from '@/firebaseConfig';
 import { cn } from '@/lib/utils';
 import { generateInvoicePDF } from '@/services/pdfService';
 import { motion } from 'motion/react';
@@ -31,46 +29,9 @@ interface FormData {
   notes: string;
 }
 
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-  };
-}
-
-const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: null,
-      email: null,
-      emailVerified: null,
-      isAnonymous: null,
-    },
-    operationType,
-    path
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-};
-
 const MEAL_DROPDOWN_OPTIONS = [
   { value: 'breakfast', labelEn: 'Breakfast', labelBm: 'Sarapan' },
-  { value: 'lunch', labelEn: 'Lunch', labelBm: 'Makan Tengahari' },
+  { value: 'lunch', labelEn: 'Lunch', labelBm: 'Makan Tengah Hari' },
   { value: 'tea_break', labelEn: 'High Tea', labelBm: 'Minum Petang' },
   { value: 'dinner', labelEn: 'Dinner', labelBm: 'Makan Malam' },
 ];
@@ -292,45 +253,25 @@ export default function OrderForm() {
         dateTime: new Date(`${formattedDateStr}T${formData.time || '12:00'}`).toISOString(),
         lang: language,
         status: 'pending',
-        createdAt: serverTimestamp(),
         prices: initialPrices,
         totalAmount: 0,
       };
 
       let docRefId = '';
       let invoiceNo = '';
-      try {
-        const response = await fetch(getApiUrl('/api/orders'), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(orderData),
-        });
-        if (!response.ok) {
-          throw new Error(`Server submission failed with status code ${response.status}: ${response.statusText || 'No Status Text'}`);
-        }
-        const resData = await response.json();
-        docRefId = resData.id;
-        invoiceNo = resData.invoiceNo;
-      } catch (err) {
-        console.warn('Backend order submission failed, falling back to direct Firestore write:', err);
-        const fetchErrStr = err instanceof Error ? err.message : String(err);
-        try {
-          const docRef = doc(collection(db, 'orders'));
-          docRefId = docRef.id;
-          invoiceNo = `RW-PRE-${docRefId.substring(0, 6).toUpperCase()}`;
-          await setDoc(docRef, {
-            ...orderData,
-            invoiceNo
-          });
-        } catch (dbErr) {
-          const combinedErrorMessage = `Backend submission failed (${fetchErrStr}) and Firestore fallback failed (${dbErr instanceof Error ? dbErr.message : String(dbErr)})`;
-          const customDbErr = new Error(combinedErrorMessage);
-          handleFirestoreError(customDbErr, OperationType.WRITE, 'orders');
-          return;
-        }
+      const response = await fetch(getApiUrl('/api/orders'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+      if (!response.ok) {
+        throw new Error(`Server submission failed with status code ${response.status}: ${response.statusText || 'No Status Text'}`);
       }
+      const resData = await response.json();
+      docRefId = resData.id;
+      invoiceNo = resData.invoiceNo;
       
       console.log('Order submitted with ID:', docRefId, 'Invoice Number:', invoiceNo);
       
